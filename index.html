@@ -117,8 +117,7 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
       <label for="s3">Paso 3</label><textarea id="s3" rows="2"></textarea>
       <p class="hint" id="stepHint"></p>
       <div class="row" style="margin-top:12px"><button class="btn" id="vPlay" type="button" disabled>▶ Probar</button><button class="btn pri" id="vExp" type="button" disabled>Exportar video</button></div>
-      <p class="hint" id="vProg"></p>
-      <div class="row"><button class="btn pri" id="vSave" type="button" hidden>Guardar en la galería</button></div>
+      <p class="hint" id="vProg">Al exportar verás el avance en pantalla. Al terminar, toca "Guardar en la galería".</p>
       <label for="vfr">Cuadro del video para la portada (solo si no usas tu foto)</label>
       <input type="range" id="vfr" min="0" max="100" value="35" disabled aria-label="Cuadro de la portada">
     </section>
@@ -186,12 +185,18 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
       <div class="rng"><span>Vertical</span><input type="range" id="tty" min="-100" max="100" value="0" aria-label="Posición vertical del video en TikTok"></div>
       <div class="row" style="margin-top:8px"><button class="btn" id="ttPlay" type="button" disabled>▶ Probar / pausa</button><label class="chk" style="margin:0"><input type="checkbox" id="ttGuides"> Mostrar botones de TikTok</label></div>
       <div class="row" style="margin-top:8px"><button class="btn pri" id="ttExp" type="button" disabled>Exportar video TikTok</button></div>
-      <p class="hint" id="ttProg"></p>
-      <div class="row"><button class="btn pri" id="ttSave" type="button" hidden>Guardar en la galería</button></div>
+      <p class="hint" id="ttProg">Dura lo mismo que tu video. Al terminar, toca "Guardar en la galería".</p>
       <label for="capTT">Descripción corta</label>
       <textarea id="capTT" rows="5"></textarea>
       <div class="row" style="margin-top:8px"><button class="btn" id="capTTCopy" type="button">Copiar</button><button class="btn" id="capTTReset" type="button">Restablecer</button></div>
     </section>
+  </div>
+</div>
+<div id="expo" hidden style="position:fixed;inset:0;z-index:60;background:rgba(7,8,11,.94);display:flex;align-items:center;justify-content:center;padding:24px">
+  <div class="sec" style="max-width:340px;width:100%;text-align:center">
+    <p id="expoT" style="margin:0 0 14px;font-weight:700;font-size:16px;line-height:1.35"></p>
+    <div id="expoP" style="height:8px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden;margin-bottom:16px"><i id="expoB" style="display:block;height:100%;width:0;background:#fff"></i></div>
+    <div class="row" style="justify-content:center;gap:10px"><button class="btn pri" id="expoS" type="button" hidden>Guardar en la galería</button><button class="btn" id="expoX" type="button">Cancelar</button></div>
   </div>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -328,7 +333,7 @@ function fillFields(){
 /* ───────── video de la técnica ───────── */
 function mkVideo(){
   const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto';
-  v.style.cssText = 'position:fixed;left:-9999px;top:0;width:4px;height:4px;opacity:0;pointer-events:none'; document.body.append(v); return v;
+  v.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:.01;pointer-events:none;z-index:-1'; document.body.append(v); return v;
 }
 const once = (el, ev) => new Promise(r => el.addEventListener(ev, r, {once:true}));
 function clearVideo(){
@@ -393,26 +398,56 @@ function loop(){
   };
   requestAnimationFrame(step);
 }
-async function exportVideo(){
-  const v = VID.el; if (!v || VID.busy) return;
-  if (!window.MediaRecorder || !CV[1].captureStream){ toast('Este navegador no puede exportar video'); return; }
-  const mime = ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m));
-  if (!mime){ toast('Este navegador no puede exportar video'); return; }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const EXP = {cancel:false};
+function expUI(o){
+  const b = $('expo'); b.hidden = false;
+  $('expoT').textContent = o.text; $('expoP').hidden = o.pct == null; $('expoB').style.width = (o.pct || 0) + '%';
+  const sv = $('expoS'); sv.hidden = !o.save; if (o.save){ sv.onclick = async () => { sv.disabled = true; const ok = await o.save(); sv.disabled = false; if (ok) sv.textContent = 'Guardado ✓ · guardar otra vez'; }; sv.textContent = 'Guardar en la galería'; }
+  $('expoX').textContent = o.close ? 'Cerrar' : 'Cancelar';
+  $('expoX').onclick = () => { if (o.close){ b.hidden = true; } else { EXP.cancel = true; const v = VID.el; if (v){ v.pause(); v.dispatchEvent(new Event('ended')); } } };
+}
+/* Graba el canvas mientras suena el video. Siempre responde algo en pantalla: progreso, error o botón de guardar. */
+async function recordExport(o){
+  const v = VID.el;
+  if (VID.busy){ expUI({text:'Ya hay una exportación en curso. Espera a que termine.', close:true}); return; }
+  if (!v || !VID.ready){ expUI({text:'Primero sube el video de la técnica.', close:true}); return; }
+  if (!window.MediaRecorder || !o.canvas.captureStream){ expUI({text:'Este navegador no puede grabar video. Abre la app en Safari (iPhone) o Chrome actualizado.', close:true}); return; }
+  const mime = ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(m => { try { return MediaRecorder.isTypeSupported(m); } catch (_) { return false; } });
+  if (!mime){ expUI({text:'Este navegador no sabe guardar el video en un formato compatible.', close:true}); return; }
   const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-  VID.busy = true; $('vSave').hidden = true; $('vExp').disabled = true; v.pause();
-  if (v.currentTime > .01){ v.currentTime = 0; await once(v, 'seeked'); }
-  renderSlide2();
-  const rec = new MediaRecorder(CV[1].captureStream(30), {mimeType:mime, videoBitsPerSecond:8000000}), chunks = [];
-  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
-  const stopped = new Promise(r => rec.onstop = r);
-  rec.start(250); await v.play();
-  const t = setInterval(() => { $('vProg').textContent = 'Grabando… ' + Math.round(v.currentTime / v.duration * 100) + '%. Deja esta pantalla abierta.'; }, 300);
-  await once(v, 'ended'); await new Promise(r => setTimeout(r, 250));
-  clearInterval(t); rec.stop(); await stopped;
-  const blob = new Blob(chunks, {type:mime.split(';')[0]});
-  VID.busy = false; $('vExp').disabled = false;
-  $('vProg').textContent = ext === 'webm' ? 'Listo (formato webm: Instagram lo prefiere en mp4; en iPhone abre la app desde Safari para obtener mp4). Toca el botón para guardarlo.' : 'Listo. Toca el botón para guardarlo en la galería.';
-  offerSave('vSave', 'jelian-' + S.ex.id + '-02.' + ext, blob);
+  VID.busy = true; EXP.cancel = false; o.start && o.start();
+  expUI({text:'Preparando…', pct:0});
+  let rec = null, timer = null, run = false;
+  try {
+    v.pause();
+    if (v.currentTime > .01){ v.currentTime = 0; await Promise.race([once(v, 'seeked'), sleep(2500)]); }
+    o.draw();
+    const stream = o.canvas.captureStream(30);
+    try { rec = new MediaRecorder(stream, {mimeType:mime, videoBitsPerSecond:o.bps}); } catch (_) { rec = new MediaRecorder(stream); }
+    const chunks = []; rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    const stopped = new Promise(r => rec.onstop = r);
+    run = true; const step = () => { if (o.drawEach) o.drawEach(); if (run) requestAnimationFrame(step); }; step();
+    rec.start(250);
+    try { await v.play(); } catch (e){ throw new Error('El teléfono bloqueó la reproducción. Toca "▶ Probar" una vez y vuelve a exportar.'); }
+    timer = setInterval(() => { const p = v.duration ? Math.min(99, Math.round(v.currentTime / v.duration * 100)) : 0; expUI({text:'Grabando… ' + p + '%. Deja esta pantalla abierta.', pct:p}); }, 250);
+    await Promise.race([once(v, 'ended'), sleep((v.duration || 10) * 1000 + 8000)]);
+    await sleep(250); clearInterval(timer); run = false; if (rec.state !== 'inactive') rec.stop(); await stopped;
+    if (EXP.cancel){ expUI({text:'Exportación cancelada.', close:true}); return; }
+    const blob = new Blob(chunks, {type:mime.split(';')[0]});
+    if (!blob.size) throw new Error('No se generó el video. Prueba de nuevo.');
+    const name = o.name + '.' + ext;
+    expUI({text:'Listo ✓ Toca el botón y elige "Guardar video".' + (ext === 'webm' ? ' (Formato webm: en iPhone abre la app desde Safari para obtener mp4.)' : ''), close:true, save:() => doSave(name, blob)});
+  } catch (e){
+    expUI({text:'No se pudo exportar: ' + ((e && e.message) || 'error desconocido'), close:true});
+  } finally {
+    run = false; clearInterval(timer); try { if (rec && rec.state !== 'inactive') rec.stop(); } catch (_) {}
+    try { v.pause(); } catch (_) {}
+    VID.busy = false; o.end && o.end();
+  }
+}
+function exportVideo(){
+  recordExport({canvas:CV[1], bps:8000000, name:'jelian-' + S.ex.id + '-02', draw:renderSlide2, start:() => { $('vExp').disabled = true; }, end:() => { $('vExp').disabled = !VID.ready; renderSlide2(); }});
 }
 
 /* ───────── TikTok 9:16 ───────── */
@@ -483,27 +518,10 @@ function drawGuides(ctx){
   ctx.restore();
 }
 function renderTT(){ const c = $('ttc'); if (c && S.ex){ const x = c.getContext('2d'); slideTT(x); if (TT.guides && !TT.rec){ x.setTransform(c.width / TW, 0, 0, c.width / TW, 0, 0); drawGuides(x); x.setTransform(1, 0, 0, 1, 0, 0); } } }
-async function exportTT(){
-  const v = VID.el, c = $('ttc'); if (!v || VID.busy) return;
-  if (!window.MediaRecorder || !c.captureStream){ toast('Este navegador no puede exportar video'); return; }
-  const mime = ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m));
-  if (!mime){ toast('Este navegador no puede exportar video'); return; }
-  const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-  VID.busy = true; TT.rec = true; $('ttSave').hidden = true; $('ttExp').disabled = true; $('vExp').disabled = true; v.pause();
-  if (v.currentTime > .01){ v.currentTime = 0; await once(v, 'seeked'); }
-  renderTT();
-  const rec = new MediaRecorder(c.captureStream(30), {mimeType:mime, videoBitsPerSecond:5000000}), chunks = [];
-  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
-  const stopped = new Promise(r => rec.onstop = r);
-  let run = true; const step = () => { renderTT(); if (run) requestAnimationFrame(step); }; requestAnimationFrame(step);
-  rec.start(250); await v.play();
-  const t = setInterval(() => { $('ttProg').textContent = 'Grabando… ' + Math.round(v.currentTime / v.duration * 100) + '%. Deja esta pantalla abierta.'; }, 300);
-  await once(v, 'ended'); await new Promise(r => setTimeout(r, 250));
-  clearInterval(t); run = false; rec.stop(); await stopped; TT.rec = false; renderTT();
-  const blob = new Blob(chunks, {type:mime.split(';')[0]});
-  VID.busy = false; $('ttExp').disabled = false; $('vExp').disabled = false;
-  $('ttProg').textContent = ext === 'webm' ? 'Listo (formato webm; TikTok prefiere mp4, en iPhone abre la app desde Safari). Toca el botón para guardarlo.' : 'Listo. Toca el botón para guardarlo en la galería.';
-  offerSave('ttSave', 'jelian-' + S.ex.id + '-tiktok.' + ext, blob);
+function exportTT(){
+  recordExport({canvas:$('ttc'), bps:5000000, name:'jelian-' + S.ex.id + '-tiktok', draw:renderTT, drawEach:renderTT,
+    start:() => { TT.rec = true; $('ttExp').disabled = true; $('vExp').disabled = true; },
+    end:() => { TT.rec = false; $('ttExp').disabled = !VID.ready; $('vExp').disabled = !VID.ready; renderTT(); renderSlide2(); }});
 }
 function captionTT(){
   const tag = norm(S.ex.muscle).replace(/[^a-z0-9]+/g, '');
