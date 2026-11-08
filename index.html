@@ -172,7 +172,11 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
     <section class="sec">
       <h2>7 · TikTok (vertical 9:16)</h2>
       <canvas id="ttc" width="1080" height="1920" aria-label="Vista previa del video para TikTok" style="display:block;width:100%;max-width:300px;aspect-ratio:9/16;height:auto;border-radius:12px;border:1px solid var(--line);background:#07080b;margin:0 auto"></canvas>
-      <p class="hint">Video vertical 1080×1920 con el título arriba y los pasos sobre el video. Deja libre la parte de abajo y el costado derecho, donde TikTok pone sus botones.</p>
+      <p class="hint">Video vertical 1080×1920: el video llena toda la pantalla, con el título arriba y los pasos encima. Mueve Horizontal para que quedes en el centro. Deja libre la parte de abajo y el costado derecho, donde TikTok pone sus botones.</p>
+      <div class="rng"><span>Zoom</span><input type="range" id="ttz" min="100" max="250" value="100" aria-label="Zoom del video en TikTok"></div>
+      <div class="rng"><span>Horizontal</span><input type="range" id="ttx" min="-100" max="100" value="0" aria-label="Posición horizontal del video en TikTok"></div>
+      <div class="rng"><span>Vertical</span><input type="range" id="tty" min="-100" max="100" value="0" aria-label="Posición vertical del video en TikTok"></div>
+      <div class="row" style="margin-top:8px"><button class="btn" id="ttPlay" type="button" disabled>▶ Probar / pausa</button><label class="chk" style="margin:0"><input type="checkbox" id="ttGuides"> Mostrar botones de TikTok</label></div>
       <div class="row" style="margin-top:8px"><button class="btn pri" id="ttExp" type="button" disabled>Exportar video TikTok</button></div>
       <p class="hint" id="ttProg"></p>
       <label for="capTT">Descripción corta</label>
@@ -322,7 +326,7 @@ function clearVideo(){
   [VID.el, VID.th].forEach(v => { if (v){ v.pause(); v.removeAttribute('src'); v.load(); v.remove(); } });
   if (VID.url) URL.revokeObjectURL(VID.url);
   VID.el = VID.th = VID.url = null; VID.ready = false; VID.busy = false;
-  ['vPlay', 'vExp', 'vfr', 'ttExp'].forEach(id => { const b = $(id); if (b) b.disabled = true; });
+  ['vPlay', 'vExp', 'vfr', 'ttExp', 'ttPlay'].forEach(id => { const b = $(id); if (b) b.disabled = true; });
   const m = $('vMsg'); if (m) { m.className = 'hint'; m.textContent = 'El video se ve dentro del marco oscuro y los pasos aparecen mientras se reproduce.'; }
   if (S.ex && !S.coverManual && S.ex.id !== 'pullover-cable') S.cover = null;
 }
@@ -334,7 +338,7 @@ function loadVideo(file){
   const el = VID.el; let retried = false, started = false, t0;
   const ready = () => {
     if (started || VID.el !== el || !el.videoWidth) return; started = true; clearTimeout(t0);
-    VID.ready = true; ['vPlay', 'vExp', 'vfr', 'ttExp'].forEach(id => $(id).disabled = false);
+    VID.ready = true; ['vPlay', 'vExp', 'vfr', 'ttExp', 'ttPlay'].forEach(id => $(id).disabled = false);
     try { el.currentTime = Math.min(.05, (el.duration || 1) / 2); } catch (_) {}
     vmsg('Video listo · ' + (el.duration || 0).toFixed(1) + ' s · ' + el.videoWidth + '×' + el.videoHeight, 'ok');
     grabCover(); schedule();
@@ -370,7 +374,7 @@ function grabCover(){
   };
   th.onseeked = go; th.currentTime = Math.max(0, Math.min(th.duration - .1, th.duration * $('vfr').value / 100));
 }
-function renderSlide2(){ const ctx = CV[1].getContext('2d'); ctx.save(); slide2(ctx); ctx.restore(); }
+function renderSlide2(){ const ctx = CV[1].getContext('2d'); ctx.save(); slide2(ctx); ctx.restore(); renderTT(); }
 function loop(){
   if (VID.looping) return; VID.looping = true;
   const step = () => {
@@ -408,9 +412,9 @@ function slideTT(ctx){
   ctx.fillStyle = '#07080b'; ctx.fillRect(0, 0, TW, TH);
   const v = VID.el, ok = VID.ready && v && v.videoWidth;
   if (ok){
-    const ar = v.videoWidth / v.videoHeight; let dw, dh, dx, dy;
-    if (ar < .65){ const k = Math.max(TW / v.videoWidth, TH / v.videoHeight); dw = v.videoWidth * k; dh = v.videoHeight * k; dx = (TW - dw)/2; dy = (TH - dh)/2; }
-    else { dw = TW; dh = TW / ar; dx = 0; dy = (TH - dh)/2 - 40; }
+    /* siempre llena toda la pantalla vertical; zoom y posición ajustables */
+    const k = Math.max(TW / v.videoWidth, TH / v.videoHeight) * TT.zoom, dw = v.videoWidth * k, dh = v.videoHeight * k;
+    const dx = (TW - dw)/2 + TT.ox/100 * (dw - TW)/2, dy = (TH - dh)/2 + TT.oy/100 * (dh - TH)/2;
     try { ctx.drawImage(v, dx, dy, dw, dh); } catch (_) {}
   } else {
     txt(ctx, 'AQUÍ VA TU VIDEO', TW/2, TH/2, {px:26, ls:7, color:GRAY, align:'center'});
@@ -440,14 +444,25 @@ function slideTT(ctx){
   ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fillRect(M, 1510, R - M, 6);
   ctx.fillStyle = '#fff'; ctx.fillRect(M, 1510, (R - M) * p, 6);
 }
-function renderTT(){ const c = $('ttc'); if (c && S.ex){ const x = c.getContext('2d'); x.save(); slideTT(x); x.restore(); } }
+const TT = {guides:false, rec:false, zoom:1, ox:0, oy:0};
+function drawGuides(ctx){
+  ctx.save();
+  txt(ctx, 'Siguiendo   |   Para ti', TW/2, 118, {px:30, wt:700, ls:0, color:'rgba(255,255,255,.75)', align:'center'});
+  ctx.fillStyle = 'rgba(255,255,255,.32)';
+  [900, 1030, 1160, 1290, 1420].forEach(y => { ctx.beginPath(); ctx.arc(TW - 96, y, 40, 0, Math.PI*2); ctx.fill(); });
+  rr(ctx, M, 1600, 520, 34, 17); ctx.fill(); rr(ctx, M, 1656, 780, 26, 13); ctx.fill(); rr(ctx, M, 1704, 640, 26, 13); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,80,80,.8)'; ctx.lineWidth = 3; ctx.setLineDash([14, 10]);
+  ctx.strokeRect(M, 170, TW - 2*M - 150, 1370);
+  ctx.restore();
+}
+function renderTT(){ const c = $('ttc'); if (c && S.ex){ const x = c.getContext('2d'); x.save(); slideTT(x); x.restore(); if (TT.guides && !TT.rec) drawGuides(x); } }
 async function exportTT(){
   const v = VID.el, c = $('ttc'); if (!v || VID.busy) return;
   if (!window.MediaRecorder || !c.captureStream){ toast('Este navegador no puede exportar video'); return; }
   const mime = ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m));
   if (!mime){ toast('Este navegador no puede exportar video'); return; }
   const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-  VID.busy = true; $('ttExp').disabled = true; $('vExp').disabled = true; v.pause();
+  VID.busy = true; TT.rec = true; $('ttExp').disabled = true; $('vExp').disabled = true; v.pause();
   if (v.currentTime > .01){ v.currentTime = 0; await once(v, 'seeked'); }
   renderTT();
   const rec = new MediaRecorder(c.captureStream(30), {mimeType:mime, videoBitsPerSecond:8000000}), chunks = [];
@@ -457,7 +472,7 @@ async function exportTT(){
   rec.start(250); await v.play();
   const t = setInterval(() => { $('ttProg').textContent = 'Grabando… ' + Math.round(v.currentTime / v.duration * 100) + '%. Deja esta pantalla abierta.'; }, 300);
   await once(v, 'ended'); await new Promise(r => setTimeout(r, 250));
-  clearInterval(t); run = false; rec.stop(); await stopped; renderTT();
+  clearInterval(t); run = false; rec.stop(); await stopped; TT.rec = false; renderTT();
   const blob = new Blob(chunks, {type:mime.split(';')[0]});
   VID.busy = false; $('ttExp').disabled = false; $('vExp').disabled = false;
   $('ttProg').textContent = ext === 'webm' ? 'Listo (formato webm; TikTok acepta mp4, abre la página en Safari o Chrome reciente para obtener mp4).' : 'Listo.';
@@ -834,6 +849,9 @@ function init(){
   });
   $('zipBtn').addEventListener('click', saveZip);
   $('ttExp').addEventListener('click', exportTT);
+  $('ttPlay').addEventListener('click', () => $('vPlay').click());
+  [['ttz', v => TT.zoom = v/100], ['ttx', v => TT.ox = +v], ['tty', v => TT.oy = +v]].forEach(([id, fn]) => $(id).addEventListener('input', e => { fn(e.target.value); renderTT(); }));
+  $('ttGuides').addEventListener('change', e => { TT.guides = e.target.checked; renderTT(); });
   $('capTT').addEventListener('input', () => { S.ttDirty = true; });
   $('capTTReset').addEventListener('click', () => { S.ttDirty = false; $('capTT').value = captionTT(); });
   $('capTTCopy').addEventListener('click', async () => {
