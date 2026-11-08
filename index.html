@@ -172,7 +172,7 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
     <section class="sec">
       <h2>7 · TikTok (vertical 9:16)</h2>
       <canvas id="ttc" width="1080" height="1920" aria-label="Vista previa del video para TikTok" style="display:block;width:100%;max-width:300px;aspect-ratio:9/16;height:auto;border-radius:12px;border:1px solid var(--line);background:#07080b;margin:0 auto"></canvas>
-      <p class="hint">Video vertical 1080×1920: el video llena toda la pantalla, con el título arriba y los pasos encima. Mueve Horizontal para que quedes en el centro. Deja libre la parte de abajo y el costado derecho, donde TikTok pone sus botones.</p>
+      <p class="hint">Video vertical 1080×1920: se ve completo sobre un fondo difuminado, con el gancho arriba y solo el paso actual abajo. Usa Zoom si lo quieres más cerca. Deja libre la parte de abajo y el costado derecho, donde TikTok pone sus botones.</p>
       <div class="rng"><span>Zoom</span><input type="range" id="ttz" min="100" max="250" value="100" aria-label="Zoom del video en TikTok"></div>
       <div class="rng"><span>Horizontal</span><input type="range" id="ttx" min="-100" max="100" value="0" aria-label="Posición horizontal del video en TikTok"></div>
       <div class="rng"><span>Vertical</span><input type="range" id="tty" min="-100" max="100" value="0" aria-label="Posición vertical del video en TikTok"></div>
@@ -408,41 +408,44 @@ async function exportVideo(){
 
 /* ───────── TikTok 9:16 ───────── */
 const TW = 1080, TH = 1920;
+let TTB = null;
 function slideTT(ctx){
   ctx.fillStyle = '#07080b'; ctx.fillRect(0, 0, TW, TH);
   const v = VID.el, ok = VID.ready && v && v.videoWidth;
   if (ok){
-    /* siempre llena toda la pantalla vertical; zoom y posición ajustables */
-    const k = Math.max(TW / v.videoWidth, TH / v.videoHeight) * TT.zoom, dw = v.videoWidth * k, dh = v.videoHeight * k;
-    const dx = (TW - dw)/2 + TT.ox/100 * (dw - TW)/2, dy = (TH - dh)/2 + TT.oy/100 * (dh - TH)/2;
-    try { ctx.drawImage(v, dx, dy, dw, dh); } catch (_) {}
+    const vw = v.videoWidth, vh = v.videoHeight;
+    /* fondo: el mismo video muy desenfocado y oscuro, para que no queden franjas negras */
+    if (!TTB){ TTB = document.createElement('canvas'); TTB.width = 24; TTB.height = 43; }
+    const kb = Math.max(24 / vw, 43 / vh);
+    try { TTB.getContext('2d').drawImage(v, (24 - vw*kb)/2, (43 - vh*kb)/2, vw*kb, vh*kb); } catch (_) {}
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(TTB, 0, 0, TW, TH);
+    ctx.fillStyle = 'rgba(7,8,11,.5)'; ctx.fillRect(0, 0, TW, TH);
+    /* video completo, ancho de pantalla; el zoom lo acerca si hace falta */
+    const k = TW / vw * TT.zoom, dw = vw * k, dh = vh * k;
+    const dx = (TW - dw)/2 + TT.ox/100 * Math.max(0, dw - TW)/2, cy = 930 + TT.oy * 3;
+    try { ctx.drawImage(v, dx, cy - dh/2, dw, dh); } catch (_) {}
   } else {
     txt(ctx, 'AQUÍ VA TU VIDEO', TW/2, TH/2, {px:26, ls:7, color:GRAY, align:'center'});
   }
-  let g = ctx.createLinearGradient(0, 0, 0, 720); g.addColorStop(0, 'rgba(7,8,11,.92)'); g.addColorStop(1, 'rgba(7,8,11,0)');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, TW, 720);
-  g = ctx.createLinearGradient(0, 1000, 0, 1560); g.addColorStop(0, 'rgba(7,8,11,0)'); g.addColorStop(1, 'rgba(7,8,11,.92)');
-  ctx.fillStyle = g; ctx.fillRect(0, 1000, TW, TH - 1000);
-  txt(ctx, (S.ex.muscle + ' · TÉCNICA').toUpperCase(), M, 200, {px:24, ls:7.5, color:'#c9ccd3'});
-  txt(ctx, 'jelianft.com', R, 200, {px:24, ls:3, color:'#c9ccd3', align:'right'});
-  const hk = S.hook.trim().toUpperCase(), fh = hk ? fit(ctx, hk, {maxW:R - M, maxLines:2, start:88, min:48, wt:900, lsEm:-.045}) : null;
-  let yy = 240; if (fh) yy = drawLines(ctx, fh.lines, M, 240, fh.px, fh.ls, .94) + 18;
-  const f = fit(ctx, S.name.trim().toUpperCase(), {maxW:R - M, maxLines:2, start:64, min:38, wt:900, lsEm:-.045});
-  drawLines(ctx, f.lines, M, yy, f.px, f.ls, .94, {mode:'stroke', sw:Math.max(2, f.px*.032)});
+  let g = ctx.createLinearGradient(0, 0, 0, 600); g.addColorStop(0, 'rgba(7,8,11,.8)'); g.addColorStop(1, 'rgba(7,8,11,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, TW, 600);
+  g = ctx.createLinearGradient(0, 1150, 0, 1560); g.addColorStop(0, 'rgba(7,8,11,0)'); g.addColorStop(1, 'rgba(7,8,11,.85)');
+  ctx.fillStyle = g; ctx.fillRect(0, 1150, TW, TH - 1150);
+  /* arriba: solo el gancho y el nombre, por debajo de la barra de búsqueda de TikTok */
+  const hk = S.hook.trim().toUpperCase(); let yy = 330;
+  if (hk){ const fh = fit(ctx, hk, {maxW:R - M, maxLines:2, start:76, min:44, wt:900, lsEm:-.04}); yy = drawLines(ctx, fh.lines, M, 330, fh.px, fh.ls, .96) + 16; }
+  const nm = S.name.trim().toUpperCase(), fn = fit(ctx, nm, {maxW:R - M, maxLines:1, start:36, min:22, wt:800, lsEm:.02});
+  txt(ctx, nm, M, yy + CAP*fn.px, {wt:800, px:fn.px, ls:fn.ls, color:'#d7dae0'});
+  /* abajo: solo el paso actual, como subtítulo */
   const steps = S.steps.map(t => t.trim()).filter(Boolean), n = steps.length;
-  const p = ok && v.duration ? Math.min(1, v.currentTime / v.duration) : 0;
   if (n){
-    const rh = Math.min(150, 340 / n), y0 = 1470 - rh * n, cur = Math.min(n - 1, Math.floor(p * n));
-    steps.forEach((t, i) => {
-      const ry = y0 + i*rh, on = i === cur, col = on ? '#fff' : '#9a9ea8';
-      const tx = M + 96, tf = fit(ctx, t, {maxW:R - 120 - tx, maxLines:2, start:36, min:24, wt:on ? 700 : 500, lsEm:-.01});
-      const bh = blockH(tf.px, tf.lines.length, 1.25), ty = ry + (rh - bh)/2;
-      txt(ctx, String(i+1).padStart(2, '0'), M, ry + rh/2 + CAP*30/2, {wt:900, px:30, ls:-1, color:col});
-      tf.lines.forEach((l, k) => txt(ctx, l, tx, ty + CAP*tf.px + k*tf.px*1.25, {wt:on ? 700 : 500, px:tf.px, ls:tf.ls, color:col}));
-    });
+    const p = ok && v.duration ? Math.min(.999, v.currentTime / v.duration) : 0, cur = Math.floor(p * n);
+    const maxW = R - M - 120, tf = fit(ctx, steps[cur], {maxW, maxLines:3, start:46, min:30, wt:800, lsEm:-.01});
+    const bh = blockH(tf.px, tf.lines.length, 1.22), ty = 1500 - bh;
+    txt(ctx, 'PASO ' + (cur + 1) + ' DE ' + n, M, ty - 28, {px:24, ls:6, color:'#c9ccd3'});
+    tf.lines.forEach((l, k) => txt(ctx, l, M, ty + CAP*tf.px + k*tf.px*1.22, {wt:800, px:tf.px, ls:tf.ls, color:'#fff'}));
   }
-  ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fillRect(M, 1510, R - M, 6);
-  ctx.fillStyle = '#fff'; ctx.fillRect(M, 1510, (R - M) * p, 6);
 }
 const TT = {guides:false, rec:false, zoom:1, ox:0, oy:0};
 function drawGuides(ctx){
@@ -452,7 +455,8 @@ function drawGuides(ctx){
   [900, 1030, 1160, 1290, 1420].forEach(y => { ctx.beginPath(); ctx.arc(TW - 96, y, 40, 0, Math.PI*2); ctx.fill(); });
   rr(ctx, M, 1600, 520, 34, 17); ctx.fill(); rr(ctx, M, 1656, 780, 26, 13); ctx.fill(); rr(ctx, M, 1704, 640, 26, 13); ctx.fill();
   ctx.strokeStyle = 'rgba(255,80,80,.8)'; ctx.lineWidth = 3; ctx.setLineDash([14, 10]);
-  ctx.strokeRect(M, 170, TW - 2*M - 150, 1370);
+  ctx.strokeRect(M, 300, 930 - M, 1260);
+  ctx.fillStyle = 'rgba(255,60,60,.16)'; ctx.fillRect(0, 0, TW, 300); ctx.fillRect(0, 1560, TW, TH - 1560);
   ctx.restore();
 }
 function renderTT(){ const c = $('ttc'); if (c && S.ex){ const x = c.getContext('2d'); x.save(); slideTT(x); x.restore(); if (TT.guides && !TT.rec) drawGuides(x); } }
