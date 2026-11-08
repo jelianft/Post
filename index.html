@@ -299,27 +299,37 @@ function clearVideo(){
 }
 function vmsg(t, cls){ const m = $('vMsg'); m.className = 'hint ' + (cls || ''); m.textContent = t; }
 function loadVideo(file){
-  if (!file || !file.type.startsWith('video/')){ toast('Elige un archivo de video'); return; }
+  if (!file || !(file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm)$/i.test(file.name || ''))){ toast('Elige un archivo de video'); return; }
   clearVideo(); vmsg('Abriendo el video…');
   VID.url = URL.createObjectURL(file); VID.el = mkVideo(); VID.th = mkVideo();
-  let retried = false;
-  VID.el.addEventListener('error', () => {
-    if (!retried){ retried = true; const r = new FileReader();
-      r.onload = () => { VID.el.src = r.result; VID.th.src = r.result; };
-      r.onerror = () => vmsg('No pude abrir ese video.', 'warn'); r.readAsDataURL(file); }
-    else vmsg('No pude abrir ese video. Prueba con un .mp4.', 'warn');
-  });
-  VID.el.addEventListener('loadeddata', () => {
+  const el = VID.el; let retried = false, started = false, t0;
+  const ready = () => {
+    if (started || VID.el !== el || !el.videoWidth) return; started = true; clearTimeout(t0);
     VID.ready = true; ['vPlay', 'vExp', 'vfr'].forEach(id => $(id).disabled = false);
-    VID.el.currentTime = Math.min(.05, VID.el.duration / 2);
-    vmsg('Video listo · ' + VID.el.duration.toFixed(1) + ' s · ' + VID.el.videoWidth + '×' + VID.el.videoHeight, 'ok');
+    try { el.currentTime = Math.min(.05, (el.duration || 1) / 2); } catch (_) {}
+    vmsg('Video listo · ' + (el.duration || 0).toFixed(1) + ' s · ' + el.videoWidth + '×' + el.videoHeight, 'ok');
     grabCover(); schedule();
+  };
+  const fail = () => {
+    const c = el.error ? el.error.code : 0;
+    vmsg('No pude abrir ese video (código ' + c + '). ' + (c === 4 ? 'Este navegador no soporta ese formato; en iPhone/Android graba o convierte a .mp4 (H.264).' : 'Prueba con otro .mp4.'), 'warn');
+  };
+  el.addEventListener('error', () => {
+    if (VID.el !== el) return;
+    if (!retried){ retried = true; vmsg('Reintentando…'); const r = new FileReader();
+      r.onload = () => { el.src = r.result; VID.th.src = r.result; };
+      r.onerror = fail; r.readAsDataURL(file); }
+    else fail();
   });
-  VID.el.addEventListener('seeked', schedule);
-  VID.el.addEventListener('play', () => { $('vPlay').textContent = '❚❚ Pausa'; loop(); });
-  VID.el.addEventListener('pause', () => { $('vPlay').textContent = '▶ Probar'; });
-  VID.el.addEventListener('ended', () => { $('vPlay').textContent = '▶ Probar'; });
-  VID.el.src = VID.url; VID.th.src = VID.url;
+  ['loadedmetadata', 'loadeddata', 'canplay'].forEach(ev => el.addEventListener(ev, ready));
+  /* iOS/Safari no descarga datos de un video oculto hasta que se intenta reproducir */
+  t0 = setTimeout(() => { if (!started && VID.el === el){ const p = el.play(); if (p && p.then) p.then(() => { el.pause(); ready(); }).catch(() => {}); } }, 800);
+  setTimeout(() => { if (!started && VID.el === el && !el.error) vmsg('El navegador no logra leer este video. Prueba con un .mp4 (H.264).', 'warn'); }, 6000);
+  el.addEventListener('seeked', schedule);
+  el.addEventListener('play', () => { $('vPlay').textContent = '❚❚ Pausa'; loop(); });
+  el.addEventListener('pause', () => { $('vPlay').textContent = '▶ Probar'; });
+  el.addEventListener('ended', () => { $('vPlay').textContent = '▶ Probar'; });
+  el.src = VID.url; VID.th.src = VID.url;
 }
 function grabCover(){
   if (S.coverManual || !VID.th || !VID.ready) return;
