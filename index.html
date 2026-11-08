@@ -1,6 +1,13 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07080b">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="JFT Posts">
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px);background:#07080b}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Posts JELIAN FT</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@500;700;900&display=swap">
 <style>
@@ -59,6 +66,7 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
 
 <div class="wrap">
   <header>
+    <img src="icon-192.png" alt="JFT" width="46" height="46" style="border-radius:11px;align-self:center">
     <h1>Posts JELIAN FT</h1>
     <p>Un ejercicio de tu biblioteca, cuatro láminas listas para Instagram.</p>
   </header>
@@ -77,7 +85,6 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
       <button class="btn pri" id="zipBtn" type="button">Guardar las 4 (.zip)</button>
       <label class="chk" style="margin:0"><input type="checkbox" id="inc2" checked> Incluir lámina 2 (marco del video)</label>
     </div>
-    <p class="hint" id="dlNote"></p>
   </section>
 
   <div id="fields">
@@ -111,6 +118,7 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
       <p class="hint" id="stepHint"></p>
       <div class="row" style="margin-top:12px"><button class="btn" id="vPlay" type="button" disabled>▶ Probar</button><button class="btn pri" id="vExp" type="button" disabled>Exportar video</button></div>
       <p class="hint" id="vProg"></p>
+      <div class="row"><button class="btn pri" id="vSave" type="button" hidden>Guardar en la galería</button></div>
       <label for="vfr">Cuadro del video para la portada (solo si no usas tu foto)</label>
       <input type="range" id="vfr" min="0" max="100" value="35" disabled aria-label="Cuadro de la portada">
     </section>
@@ -171,14 +179,15 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
 
     <section class="sec">
       <h2>7 · TikTok (vertical 9:16)</h2>
-      <canvas id="ttc" width="1080" height="1920" aria-label="Vista previa del video para TikTok" style="display:block;width:100%;max-width:300px;aspect-ratio:9/16;height:auto;border-radius:12px;border:1px solid var(--line);background:#07080b;margin:0 auto"></canvas>
-      <p class="hint">Video vertical 1080×1920: se ve completo sobre un fondo difuminado, con el gancho arriba y solo el paso actual abajo. Usa Zoom si lo quieres más cerca. Deja libre la parte de abajo y el costado derecho, donde TikTok pone sus botones.</p>
+      <canvas id="ttc" width="720" height="1280" aria-label="Vista previa del video para TikTok" style="display:block;width:100%;max-width:300px;aspect-ratio:9/16;height:auto;border-radius:12px;border:1px solid var(--line);background:#07080b;margin:0 auto"></canvas>
+      <p class="hint">Video vertical 720×1280 (el tamaño que TikTok recomienda para que cargue rápido): se ve completo sobre un fondo difuminado, con el gancho arriba y solo el paso actual abajo. Usa Zoom si lo quieres más cerca. Deja libre la parte de abajo y el costado derecho, donde TikTok pone sus botones.</p>
       <div class="rng"><span>Zoom</span><input type="range" id="ttz" min="100" max="250" value="100" aria-label="Zoom del video en TikTok"></div>
       <div class="rng"><span>Horizontal</span><input type="range" id="ttx" min="-100" max="100" value="0" aria-label="Posición horizontal del video en TikTok"></div>
       <div class="rng"><span>Vertical</span><input type="range" id="tty" min="-100" max="100" value="0" aria-label="Posición vertical del video en TikTok"></div>
       <div class="row" style="margin-top:8px"><button class="btn" id="ttPlay" type="button" disabled>▶ Probar / pausa</button><label class="chk" style="margin:0"><input type="checkbox" id="ttGuides"> Mostrar botones de TikTok</label></div>
       <div class="row" style="margin-top:8px"><button class="btn pri" id="ttExp" type="button" disabled>Exportar video TikTok</button></div>
       <p class="hint" id="ttProg"></p>
+      <div class="row"><button class="btn pri" id="ttSave" type="button" hidden>Guardar en la galería</button></div>
       <label for="capTT">Descripción corta</label>
       <textarea id="capTT" rows="5"></textarea>
       <div class="row" style="margin-top:8px"><button class="btn" id="capTTCopy" type="button">Copiar</button><button class="btn" id="capTTReset" type="button">Restablecer</button></div>
@@ -374,11 +383,11 @@ function grabCover(){
   };
   th.onseeked = go; th.currentTime = Math.max(0, Math.min(th.duration - .1, th.duration * $('vfr').value / 100));
 }
-function renderSlide2(){ const ctx = CV[1].getContext('2d'); ctx.save(); slide2(ctx); ctx.restore(); renderTT(); }
+function renderSlide2(){ if (TT.rec) return; const ctx = CV[1].getContext('2d'); ctx.save(); slide2(ctx); ctx.restore(); }
 function loop(){
   if (VID.looping) return; VID.looping = true;
   const step = () => {
-    renderSlide2();
+    renderSlide2(); if (!VID.busy) renderTT();
     if (!VID.el || VID.el.paused || VID.el.ended){ VID.looping = false; renderSlide2(); return; }
     requestAnimationFrame(step);
   };
@@ -390,7 +399,7 @@ async function exportVideo(){
   const mime = ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m));
   if (!mime){ toast('Este navegador no puede exportar video'); return; }
   const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-  VID.busy = true; $('vExp').disabled = true; v.pause();
+  VID.busy = true; $('vSave').hidden = true; $('vExp').disabled = true; v.pause();
   if (v.currentTime > .01){ v.currentTime = 0; await once(v, 'seeked'); }
   renderSlide2();
   const rec = new MediaRecorder(CV[1].captureStream(30), {mimeType:mime, videoBitsPerSecond:8000000}), chunks = [];
@@ -402,14 +411,39 @@ async function exportVideo(){
   clearInterval(t); rec.stop(); await stopped;
   const blob = new Blob(chunks, {type:mime.split(';')[0]});
   VID.busy = false; $('vExp').disabled = false;
-  $('vProg').textContent = ext === 'webm' ? 'Listo (formato webm: Instagram lo prefiere en mp4; abre la página desde Safari o Chrome reciente para obtener mp4).' : 'Listo.';
-  await doSave('jelian-' + S.ex.id + '-02.' + ext, blob);
+  $('vProg').textContent = ext === 'webm' ? 'Listo (formato webm: Instagram lo prefiere en mp4; en iPhone abre la app desde Safari para obtener mp4). Toca el botón para guardarlo.' : 'Listo. Toca el botón para guardarlo en la galería.';
+  offerSave('vSave', 'jelian-' + S.ex.id + '-02.' + ext, blob);
 }
 
 /* ───────── TikTok 9:16 ───────── */
 const TW = 1080, TH = 1920;
 let TTB = null;
+const TTL = {key:'', sk:'', ov:null, sl:null};
+function ttCanvas(k){ if (!TTL[k]){ TTL[k] = document.createElement('canvas'); TTL[k].width = 720; TTL[k].height = 1280; } return TTL[k].getContext('2d'); }
+function ttLayers(){
+  const key = [S.hook, S.name, S.ex && S.ex.id].join('|');
+  if (TTL.key === key && TTL.ov) return; TTL.key = key; TTL.sk = '';
+  const c = ttCanvas('ov'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, 720, 1280); c.setTransform(720/TW, 0, 0, 720/TW, 0, 0);
+  let g = c.createLinearGradient(0, 0, 0, 600); g.addColorStop(0, 'rgba(7,8,11,.8)'); g.addColorStop(1, 'rgba(7,8,11,0)');
+  c.fillStyle = g; c.fillRect(0, 0, TW, 600);
+  g = c.createLinearGradient(0, 1150, 0, 1560); g.addColorStop(0, 'rgba(7,8,11,0)'); g.addColorStop(1, 'rgba(7,8,11,.85)');
+  c.fillStyle = g; c.fillRect(0, 1150, TW, TH - 1150);
+  const hk = S.hook.trim().toUpperCase(); let yy = 330;
+  if (hk){ const fh = fit(c, hk, {maxW:R - M, maxLines:2, start:76, min:44, wt:900, lsEm:-.04}); yy = drawLines(c, fh.lines, M, 330, fh.px, fh.ls, .96) + 16; }
+  const nm = S.name.trim().toUpperCase(), fn = fit(c, nm, {maxW:R - M, maxLines:1, start:36, min:22, wt:800, lsEm:.02});
+  txt(c, nm, M, yy + CAP*fn.px, {wt:800, px:fn.px, ls:fn.ls, color:'#d7dae0'});
+}
+function ttStep(cur, n, text){
+  const key = cur + '/' + n + '|' + text; if (TTL.sk === key && TTL.sl) return; TTL.sk = key;
+  const c = ttCanvas('sl'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, 720, 1280); c.setTransform(720/TW, 0, 0, 720/TW, 0, 0);
+  const maxW = R - M - 120, tf = fit(c, text, {maxW, maxLines:3, start:46, min:30, wt:800, lsEm:-.01});
+  const bh = blockH(tf.px, tf.lines.length, 1.22), ty = 1500 - bh;
+  txt(c, 'PASO ' + (cur + 1) + ' DE ' + n, M, ty - 28, {px:24, ls:6, color:'#c9ccd3'});
+  tf.lines.forEach((l, k) => txt(c, l, M, ty + CAP*tf.px + k*tf.px*1.22, {wt:800, px:tf.px, ls:tf.ls, color:'#fff'}));
+}
 function slideTT(ctx){
+  const sc = ctx.canvas.width / TW;
+  ctx.setTransform(sc, 0, 0, sc, 0, 0);
   ctx.fillStyle = '#07080b'; ctx.fillRect(0, 0, TW, TH);
   const v = VID.el, ok = VID.ready && v && v.videoWidth;
   if (ok){
@@ -418,7 +452,7 @@ function slideTT(ctx){
     if (!TTB){ TTB = document.createElement('canvas'); TTB.width = 24; TTB.height = 43; }
     const kb = Math.max(24 / vw, 43 / vh);
     try { TTB.getContext('2d').drawImage(v, (24 - vw*kb)/2, (43 - vh*kb)/2, vw*kb, vh*kb); } catch (_) {}
-    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'low';
     ctx.drawImage(TTB, 0, 0, TW, TH);
     ctx.fillStyle = 'rgba(7,8,11,.5)'; ctx.fillRect(0, 0, TW, TH);
     /* video completo, ancho de pantalla; el zoom lo acerca si hace falta */
@@ -428,23 +462,12 @@ function slideTT(ctx){
   } else {
     txt(ctx, 'AQUÍ VA TU VIDEO', TW/2, TH/2, {px:26, ls:7, color:GRAY, align:'center'});
   }
-  let g = ctx.createLinearGradient(0, 0, 0, 600); g.addColorStop(0, 'rgba(7,8,11,.8)'); g.addColorStop(1, 'rgba(7,8,11,0)');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, TW, 600);
-  g = ctx.createLinearGradient(0, 1150, 0, 1560); g.addColorStop(0, 'rgba(7,8,11,0)'); g.addColorStop(1, 'rgba(7,8,11,.85)');
-  ctx.fillStyle = g; ctx.fillRect(0, 1150, TW, TH - 1150);
-  /* arriba: solo el gancho y el nombre, por debajo de la barra de búsqueda de TikTok */
-  const hk = S.hook.trim().toUpperCase(); let yy = 330;
-  if (hk){ const fh = fit(ctx, hk, {maxW:R - M, maxLines:2, start:76, min:44, wt:900, lsEm:-.04}); yy = drawLines(ctx, fh.lines, M, 330, fh.px, fh.ls, .96) + 16; }
-  const nm = S.name.trim().toUpperCase(), fn = fit(ctx, nm, {maxW:R - M, maxLines:1, start:36, min:22, wt:800, lsEm:.02});
-  txt(ctx, nm, M, yy + CAP*fn.px, {wt:800, px:fn.px, ls:fn.ls, color:'#d7dae0'});
-  /* abajo: solo el paso actual, como subtítulo */
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ttLayers(); ctx.drawImage(TTL.ov, 0, 0);
   const steps = S.steps.map(t => t.trim()).filter(Boolean), n = steps.length;
   if (n){
     const p = ok && v.duration ? Math.min(.999, v.currentTime / v.duration) : 0, cur = Math.floor(p * n);
-    const maxW = R - M - 120, tf = fit(ctx, steps[cur], {maxW, maxLines:3, start:46, min:30, wt:800, lsEm:-.01});
-    const bh = blockH(tf.px, tf.lines.length, 1.22), ty = 1500 - bh;
-    txt(ctx, 'PASO ' + (cur + 1) + ' DE ' + n, M, ty - 28, {px:24, ls:6, color:'#c9ccd3'});
-    tf.lines.forEach((l, k) => txt(ctx, l, M, ty + CAP*tf.px + k*tf.px*1.22, {wt:800, px:tf.px, ls:tf.ls, color:'#fff'}));
+    ttStep(cur, n, steps[cur]); ctx.drawImage(TTL.sl, 0, 0);
   }
 }
 const TT = {guides:false, rec:false, zoom:1, ox:0, oy:0};
@@ -459,17 +482,17 @@ function drawGuides(ctx){
   ctx.fillStyle = 'rgba(255,60,60,.16)'; ctx.fillRect(0, 0, TW, 300); ctx.fillRect(0, 1560, TW, TH - 1560);
   ctx.restore();
 }
-function renderTT(){ const c = $('ttc'); if (c && S.ex){ const x = c.getContext('2d'); x.save(); slideTT(x); x.restore(); if (TT.guides && !TT.rec) drawGuides(x); } }
+function renderTT(){ const c = $('ttc'); if (c && S.ex){ const x = c.getContext('2d'); slideTT(x); if (TT.guides && !TT.rec){ x.setTransform(c.width / TW, 0, 0, c.width / TW, 0, 0); drawGuides(x); x.setTransform(1, 0, 0, 1, 0, 0); } } }
 async function exportTT(){
   const v = VID.el, c = $('ttc'); if (!v || VID.busy) return;
   if (!window.MediaRecorder || !c.captureStream){ toast('Este navegador no puede exportar video'); return; }
   const mime = ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m));
   if (!mime){ toast('Este navegador no puede exportar video'); return; }
   const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-  VID.busy = true; TT.rec = true; $('ttExp').disabled = true; $('vExp').disabled = true; v.pause();
+  VID.busy = true; TT.rec = true; $('ttSave').hidden = true; $('ttExp').disabled = true; $('vExp').disabled = true; v.pause();
   if (v.currentTime > .01){ v.currentTime = 0; await once(v, 'seeked'); }
   renderTT();
-  const rec = new MediaRecorder(c.captureStream(30), {mimeType:mime, videoBitsPerSecond:8000000}), chunks = [];
+  const rec = new MediaRecorder(c.captureStream(30), {mimeType:mime, videoBitsPerSecond:5000000}), chunks = [];
   rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
   const stopped = new Promise(r => rec.onstop = r);
   let run = true; const step = () => { renderTT(); if (run) requestAnimationFrame(step); }; requestAnimationFrame(step);
@@ -479,8 +502,8 @@ async function exportTT(){
   clearInterval(t); run = false; rec.stop(); await stopped; TT.rec = false; renderTT();
   const blob = new Blob(chunks, {type:mime.split(';')[0]});
   VID.busy = false; $('ttExp').disabled = false; $('vExp').disabled = false;
-  $('ttProg').textContent = ext === 'webm' ? 'Listo (formato webm; TikTok acepta mp4, abre la página en Safari o Chrome reciente para obtener mp4).' : 'Listo.';
-  await doSave('jelian-' + S.ex.id + '-tiktok.' + ext, blob);
+  $('ttProg').textContent = ext === 'webm' ? 'Listo (formato webm; TikTok prefiere mp4, en iPhone abre la app desde Safari). Toca el botón para guardarlo.' : 'Listo. Toca el botón para guardarlo en la galería.';
+  offerSave('ttSave', 'jelian-' + S.ex.id + '-tiktok.' + ext, blob);
 }
 function captionTT(){
   const tag = norm(S.ex.muscle).replace(/[^a-z0-9]+/g, '');
@@ -757,17 +780,22 @@ function listExercises(){
 }
 function toast(m){ const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2600); }
 
-let DL = null;
 const toBlob = c => new Promise(r => c.toBlob(r, 'image/png'));
 const fname = i => 'jelian-' + S.ex.id + '-0' + (i+1) + '.png';
+/* Guardar: en iPhone/Android abre la hoja de compartir ("Guardar imagen/video" va a la galería); si no existe, descarga normal. */
 async function doSave(filename, data){
-  if (!DL && !window.claude){
-    const a = document.createElement('a'); a.href = URL.createObjectURL(data instanceof Blob ? data : new Blob([data])); a.download = filename;
-    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast('Descargando…'); return;
-  }
-  if (!DL){ toast('Abre esta página dentro de Claude para guardar'); return; }
-  try { await DL.save({filename, data}); toast('Guardado'); }
-  catch (e){ if (e && e.code === 'declined') return; toast('No se pudo guardar (' + ((e && e.code) || 'error') + ')'); }
+  const blob = data instanceof Blob ? data : new Blob([data]);
+  try {
+    const file = new File([blob], filename, {type: blob.type || 'application/octet-stream'});
+    if (navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file]}); toast('Listo'); return true; }
+  } catch (e){ if (e && e.name === 'AbortError') return false; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 8000); toast('Descargando…'); return true;
+}
+/* Tras una exportación larga el navegador exige un toque nuevo para abrir "Compartir": se ofrece este botón. */
+function offerSave(btnId, filename, blob){
+  const b = $(btnId); b.hidden = false; b.textContent = 'Guardar en la galería';
+  b.onclick = async () => { b.disabled = true; const ok = await doSave(filename, blob); b.disabled = false; if (ok) b.textContent = 'Guardado ✓ · guardar otra vez'; };
 }
 async function saveOne(i){ renderAll(); await doSave(fname(i), await toBlob(CV[i])); }
 async function saveZip(){
@@ -864,15 +892,22 @@ function init(){
   });
   loadEx('pullover-cable'); listExercises();
   const f = ['500 30px Inter', '700 30px Inter', '900 30px Inter'].map(s => document.fonts.load(s));
-  Promise.all(f).then(schedule, schedule); document.fonts.ready.then(schedule);
-  if (window.claude && claude.use){
-    claude.use('downloads').then(d => {
-      DL = d; $('dlNote').textContent = d ? '' : 'Guardar no está disponible en esta vista. Ábrela dentro de Claude para descargar las láminas.';
-      document.querySelectorAll('figcaption .btn, #zipBtn').forEach(b => b.disabled = !d);
-    }, () => {});
-  }
+  const resched = () => { TTL.key = ''; TTL.sk = ''; schedule(); }; Promise.all(f).then(resched, resched); document.fonts.ready.then(resched);
 }
 init();
+/* App instalable: se actualiza sola. Revisa versión nueva al abrir, al volver a la app y cada 30 min. */
+if ('serviceWorker' in navigator){
+  const had = !!navigator.serviceWorker.controller; let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!had || reloading) return;
+    if (VID.busy){ toast('Hay una versión nueva; se aplicará al reabrir'); return; }
+    reloading = true; location.reload();
+  });
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', {updateViaCache:'none'}).then(reg => {
+    const chk = () => reg.update().catch(() => {});
+    chk(); document.addEventListener('visibilitychange', () => { if (!document.hidden) chk(); }); setInterval(chk, 30 * 60 * 1000);
+  }).catch(() => {}));
+}
 </script>
 
 </body></html>
