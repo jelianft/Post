@@ -667,7 +667,7 @@ function fillFields(){
 /* ───────── video de la técnica ───────── */
 function mkVideo(){
   const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto';
-  v.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:.01;pointer-events:none;z-index:-1'; document.body.append(v); return v;
+  v.style.cssText = 'position:fixed;left:0;top:0;width:180px;height:100px;opacity:.02;pointer-events:none;z-index:-1'; document.body.append(v); return v;
 }
 const once = (el, ev) => new Promise(r => el.addEventListener(ev, r, {once:true}));
 function clearVideo(){
@@ -707,14 +707,18 @@ function loadVideo(file){
   t0 = setTimeout(() => { if (!started && VID.el === el){ const p = el.play(); if (p && p.then) p.then(() => { el.pause(); ready(); }).catch(() => {}); } }, 800);
   setTimeout(() => { if (!started && VID.el === el && !el.error) vmsg('El navegador no logra leer este video. Prueba con un .mp4 (H.264).', 'warn'); }, 6000);
   el.addEventListener('seeked', schedule);
-  el.addEventListener('play', () => { $('vPlay').textContent = '❚❚ Pausa'; loop(); });
+  el.addEventListener('play', () => { $('vPlay').textContent = '❚❚ Pausa'; releaseTh(); loop(); });
   el.addEventListener('pause', () => { $('vPlay').textContent = '▶ Probar'; });
   el.addEventListener('ended', () => { $('vPlay').textContent = '▶ Probar'; });
   el.src = VID.url; VID.th.src = VID.url;
 }
+function releaseTh(){ const th = VID.th; if (th && th.getAttribute('src')){ th.pause(); th.removeAttribute('src'); th.load(); } }
 function grabCover(){
   if (S.coverManual || !VID.th || !VID.ready) return;
-  const th = VID.th, go = () => {
+  const th = VID.th;
+  if (!th.getAttribute('src')){ if (!VID.url || VID.el.currentTime > .2 && !VID.el.paused) return; th.addEventListener('loadedmetadata', grabCover, {once:true}); th.src = VID.url; return; }
+  if (!th.videoWidth || !th.duration) return;
+  const go = () => {
     if (!th.videoWidth) return;
     const sc = Math.min(1, 1600 / th.videoWidth), c = document.createElement('canvas');
     c.width = Math.round(th.videoWidth * sc); c.height = Math.round(th.videoHeight * sc);
@@ -725,8 +729,11 @@ function grabCover(){
 function renderSlide2(){ if (TT.rec) return; const ctx = CV[1].getContext('2d'); ctx.save(); slide2(ctx); ctx.restore(); }
 function loop(){
   if (VID.looping) return; VID.looping = true;
+  let n = 0, lt = -1, la = Date.now();
   const step = () => {
-    renderSlide2(); if (!VID.busy) renderTT();
+    renderSlide2(); if (!VID.busy && (n++ % 3 === 0)) renderTT();
+    const v = VID.el;
+    if (v && !v.paused && !v.ended){ const ct = v.currentTime; if (Math.abs(ct - lt) > .01){ lt = ct; la = Date.now(); } else if (Date.now() - la > 1200){ la = Date.now(); const pp = v.play(); if (pp && pp.catch) pp.catch(() => {}); } }
     if (!VID.el || VID.el.paused || VID.el.ended){ VID.looping = false; renderSlide2(); return; }
     requestAnimationFrame(step);
   };
@@ -763,9 +770,17 @@ async function recordExport(o){
     const stopped = new Promise(r => rec.onstop = r);
     run = true; const step = () => { if (o.drawEach) o.drawEach(); if (run) requestAnimationFrame(step); }; step();
     rec.start(250);
-    try { await v.play(); } catch (e){ throw new Error('El teléfono bloqueó la reproducción. Toca "▶ Probar" una vez y vuelve a exportar.'); }
-    timer = setInterval(() => { const p = v.duration ? Math.min(99, Math.round(v.currentTime / v.duration * 100)) : 0; expUI({text:'Grabando… ' + p + '%. Deja esta pantalla abierta.', pct:p}); }, 250);
-    await Promise.race([once(v, 'ended'), sleep((v.duration || 10) * 1000 + 8000)]);
+    expUI({text:'Grabando… 0%. Deja esta pantalla abierta.', pct:0});
+    let lastT = -1, lastAt = Date.now(), stalled = false;
+    timer = setInterval(() => {
+      const ct = v.currentTime || 0; if (Math.abs(ct - lastT) > .01){ lastT = ct; lastAt = Date.now(); }
+      if (!v.ended && Date.now() - lastAt > 7000) stalled = true;
+      const p = v.duration ? Math.min(99, Math.round(ct / v.duration * 100)) : 0; if (!EXP.cancel) expUI({text:'Grabando… ' + p + '%. Deja esta pantalla abierta.', pct:p});
+    }, 250);
+    const pl = v.play(); if (pl && pl.catch) pl.catch(() => {});
+    const dead = new Promise(r => { const w = setInterval(() => { if (stalled || EXP.cancel){ clearInterval(w); r(); } }, 300); v.addEventListener('ended', () => clearInterval(w), {once:true}); });
+    await Promise.race([once(v, 'ended'), dead, sleep((v.duration || 10) * 1000 + 15000)]);
+    if (stalled && !EXP.cancel) throw new Error('El video se detuvo en el teléfono. Cierra otras apps, toca "▶ Probar" para comprobar que reproduce y vuelve a exportar (con un video más corto o de menor resolución funciona mejor).');
     await sleep(250); clearInterval(timer); run = false; if (rec.state !== 'inactive') rec.stop(); await stopped;
     if (EXP.cancel){ expUI({text:'Exportación cancelada.', close:true}); return; }
     const blob = new Blob(chunks, {type:mime.split(';')[0]});
@@ -781,7 +796,7 @@ async function recordExport(o){
   }
 }
 function exportVideo(){
-  recordExport({canvas:CV[1], bps:8000000, name:'jelian-' + S.ex.id + '-02', draw:renderSlide2, start:() => { $('vExp').disabled = true; }, end:() => { $('vExp').disabled = !VID.ready; renderSlide2(); }});
+  recordExport({canvas:CV[1], bps:4000000, name:'jelian-' + S.ex.id + '-02', draw:renderSlide2, start:() => { $('vExp').disabled = true; }, end:() => { $('vExp').disabled = !VID.ready; renderSlide2(); }});
 }
 
 /* ───────── TikTok 9:16 ───────── */
@@ -853,7 +868,7 @@ function drawGuides(ctx){
 }
 function renderTT(){ const c = $('ttc'); if (c && S.ex){ const x = c.getContext('2d'); slideTT(x); if (TT.guides && !TT.rec){ x.setTransform(c.width / TW, 0, 0, c.width / TW, 0, 0); drawGuides(x); x.setTransform(1, 0, 0, 1, 0, 0); } } }
 function exportTT(){
-  recordExport({canvas:$('ttc'), bps:5000000, name:'jelian-' + S.ex.id + '-tiktok', draw:renderTT, drawEach:renderTT,
+  recordExport({canvas:$('ttc'), bps:3500000, name:'jelian-' + S.ex.id + '-tiktok', draw:renderTT, drawEach:renderTT,
     start:() => { TT.rec = true; $('ttExp').disabled = true; $('vExp').disabled = true; },
     end:() => { TT.rec = false; $('ttExp').disabled = !VID.ready; $('vExp').disabled = !VID.ready; renderTT(); renderSlide2(); }});
 }
