@@ -673,7 +673,7 @@ const once = (el, ev) => new Promise(r => el.addEventListener(ev, r, {once:true}
 function clearVideo(){
   [VID.el, VID.th].forEach(v => { if (v){ v.pause(); v.removeAttribute('src'); v.load(); v.remove(); } });
   if (VID.url) URL.revokeObjectURL(VID.url);
-  VID.el = VID.th = VID.url = null; VID.ready = false; VID.busy = false;
+  VID.el = VID.th = VID.url = null; VID.ready = false; VID.busy = false; if (typeof syncSave2 === 'function') syncSave2();
   ['vPlay', 'vExp', 'vfr', 'ttExp', 'ttPlay'].forEach(id => { const b = $(id); if (b) b.disabled = true; });
   const m = $('vMsg'); if (m) { m.className = 'hint'; m.textContent = 'El video se ve dentro del marco oscuro y los pasos aparecen mientras se reproduce.'; }
   if (S.ex && !S.coverManual && S.ex.id !== 'pullover-cable') S.cover = null;
@@ -689,7 +689,7 @@ function loadVideo(file){
     VID.ready = true; ['vPlay', 'vExp', 'vfr', 'ttExp', 'ttPlay'].forEach(id => $(id).disabled = false);
     try { el.currentTime = Math.min(.05, (el.duration || 1) / 2); } catch (_) {}
     vmsg('Video listo · ' + (el.duration || 0).toFixed(1) + ' s · ' + el.videoWidth + '×' + el.videoHeight, 'ok');
-    grabCover(); schedule();
+    syncSave2(); grabCover(); schedule();
   };
   const fail = () => {
     const c = el.error ? el.error.code : 0;
@@ -1149,7 +1149,8 @@ function offerSave(btnId, filename, blob){
   const b = $(btnId); b.hidden = false; b.textContent = 'Guardar en la galería';
   b.onclick = async () => { b.disabled = true; const ok = await doSave(filename, blob); b.disabled = false; if (ok) b.textContent = 'Guardado ✓ · guardar otra vez'; };
 }
-async function saveOne(i){ renderAll(); await doSave(fname(i), await toBlob(CV[i])); }
+function syncSave2(){ const b = CV[1] && CV[1].parentNode.querySelector('button'); if (b) b.textContent = VID.ready ? 'Guardar video' : 'Guardar'; }
+async function saveOne(i){ if (i === 1 && VID.ready){ exportVideo(); return; } renderAll(); await doSave(fname(i), await toBlob(CV[i])); }
 async function saveZip(){
   if (typeof JSZip === 'undefined'){ toast('No cargó el compresor; guarda las láminas una por una'); return; }
   renderAll(); const z = new JSZip(), inc2 = $('inc2').checked;
