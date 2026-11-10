@@ -1,7 +1,7 @@
 // ─── JELIAN FT POSTS · Service Worker ─────────────────────────────────────
 // Sube BUILD cuando publiques cambios; aun sin subirlo, index.html se pide
 // primero a la red (network-first), así que la app siempre abre la última versión.
-const BUILD = '20261108b';
+const BUILD = '20261109a';
 const CACHE = 'jft-posts-v' + BUILD;
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon-32.png', './favicon-16.png'];
 
@@ -20,6 +20,7 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  if (url.pathname.startsWith('/api/')) return;   // la función de portadas siempre va directo a la red
   const isPage = req.mode === 'navigate' || (url.origin === location.origin && /(\/|index\.html)$/.test(url.pathname));
   if (isPage){
     // Network-first: siempre la versión más nueva; sin conexión usa la guardada.
