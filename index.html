@@ -748,11 +748,97 @@ function expUI(o){
   $('expoX').textContent = o.close ? 'Cerrar' : 'Cancelar';
   $('expoX').onclick = () => { if (o.close){ b.hidden = true; } else { EXP.cancel = true; const v = VID.el; if (v){ v.pause(); v.dispatchEvent(new Event('ended')); } } };
 }
+
+/* ───────── Exportar cuadro por cuadro (no depende de reproducir el video en tiempo real) ───────── */
+function mp4Build(samples, desc, w, h, fps){
+  const u32 = n => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255], u16 = n => [(n >> 8) & 255, n & 255];
+  const str = t => [...t].map(c => c.charCodeAt(0));
+  const cat = a => { const o = new Uint8Array(a.reduce((n, x) => n + x.length, 0)); let k = 0; a.forEach(x => { o.set(x, k); k += x.length; }); return o; };
+  const box = (t, ...c) => { const b = cat(c.map(x => x instanceof Uint8Array ? x : Uint8Array.from(x))); return cat([Uint8Array.from([...u32(b.length + 8), ...str(t)]), b]); };
+  const TS = fps * 1000, n = samples.length, durTotal = n * 1000;
+  const mat = [...u32(0x10000), 0, 0, 0, 0, 0, ...u32(0x10000), 0, 0, 0, 0, 0, ...u32(0x40000000)].slice(0, 0);
+  const matrix = Uint8Array.from([0,1,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,1,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0x40,0,0,0]);
+  const ftyp = box('ftyp', str('isom'), u32(512), str('isom'), str('iso2'), str('avc1'), str('mp41'));
+  const key = []; samples.forEach((x, i) => { if (x.key) key.push(i + 1); });
+  const mk = off => {
+    const mvhd = box('mvhd', u32(0), u32(0), u32(0), u32(TS), u32(durTotal), u32(0x10000), u16(0x100), u16(0), u32(0), u32(0), matrix, new Uint8Array(24), u32(2));
+    const tkhd = box('tkhd', u32(3), u32(0), u32(0), u32(1), u32(0), u32(durTotal), u32(0), u32(0), u16(0), u16(0), u16(0), u16(0), matrix, u32(w * 65536), u32(h * 65536));
+    const mdhd = box('mdhd', u32(0), u32(0), u32(0), u32(TS), u32(durTotal), u16(0x55c4), u16(0));
+    const hdlr = box('hdlr', u32(0), u32(0), str('vide'), new Uint8Array(12), str('Video\0'));
+    const vmhd = box('vmhd', u32(1), u16(0), u16(0), u16(0), u16(0));
+    const dinf = box('dinf', box('dref', u32(0), u32(1), box('url ', u32(1))));
+    const avc1 = box('avc1', new Uint8Array(6), u16(1), new Uint8Array(16), u16(w), u16(h), u32(0x480000), u32(0x480000), u32(0), u16(1), new Uint8Array(32), u16(0x18), u16(0xffff), box('avcC', desc));
+    const stsd = box('stsd', u32(0), u32(1), avc1);
+    const stts = box('stts', u32(0), u32(1), u32(n), u32(1000));
+    const stss = box('stss', u32(0), u32(key.length), ...key.map(u32));
+    const stsc = box('stsc', u32(0), u32(1), u32(1), u32(n), u32(1));
+    const stsz = box('stsz', u32(0), u32(0), u32(n), ...samples.map(x => u32(x.d.length)));
+    const stco = box('stco', u32(0), u32(1), u32(off));
+    const stbl = box('stbl', stsd, stts, stss, stsc, stsz, stco);
+    return box('moov', mvhd, box('trak', tkhd, box('mdia', mdhd, hdlr, box('minf', vmhd, dinf, stbl))));
+  };
+  const moov0 = mk(0), moov = mk(ftyp.length + moov0.length + 8);
+  const total = samples.reduce((a, x) => a + x.d.length, 0);
+  return new Blob([ftyp, moov, Uint8Array.from([...u32(total + 8), ...str('mdat')]), ...samples.map(x => x.d)], {type:'video/mp4'});
+}
+async function encodeExport(o){
+  if (!(window.VideoEncoder && window.VideoFrame)) return 'unsupported';
+  const v = VID.el, cv = o.canvas, fps = 30;
+  let cfg = null;
+  for (const codec of ['avc1.640028', 'avc1.4d0028', 'avc1.42002a', 'avc1.640020']){
+    const c = {codec, width:cv.width, height:cv.height, bitrate:o.bps, framerate:fps, latencyMode:'realtime', avc:{format:'avc'}};
+    try { const r = await VideoEncoder.isConfigSupported(c); if (r && r.supported){ cfg = c; break; } } catch (_) {}
+  }
+  if (!cfg) return 'unsupported';
+  VID.busy = true; EXP.cancel = false; o.start && o.start();
+  expUI({text:'Preparando…', pct:0});
+  let enc = null;
+  try {
+    v.pause(); releaseTh();
+    const dur = v.duration || 0; if (!dur || !isFinite(dur)) throw new Error('No se pudo leer la duración del video.');
+    const N = Math.max(1, Math.round(Math.min(dur, 90) * fps));
+    const out = []; let desc = null, err = null;
+    enc = new VideoEncoder({output:(ch, meta) => {
+      if (meta && meta.decoderConfig && meta.decoderConfig.description){ const d = meta.decoderConfig.description; desc = new Uint8Array(d.buffer ? d.buffer.slice(d.byteOffset, d.byteOffset + d.byteLength) : d); }
+      const d = new Uint8Array(ch.byteLength); ch.copyTo(d); out.push({d, key:ch.type === 'key'});
+    }, error:e => { err = e; }});
+    enc.configure(cfg);
+    for (let i = 0; i < N; i++){
+      if (EXP.cancel){ try { enc.close(); } catch (_) {} expUI({text:'Exportación cancelada.', close:true}); return 'done'; }
+      if (err) throw err;
+      const t = Math.min(i / fps, Math.max(0, dur - .002));
+      if (Math.abs(v.currentTime - t) > .001){
+        let ok = false; for (let k = 0; k < 2 && !ok; k++){ const p = once(v, 'seeked'); v.currentTime = t; ok = await Promise.race([p.then(() => true), sleep(5000).then(() => false)]); }
+        if (!ok) throw new Error('El teléfono no pudo avanzar el video. Prueba con un video más corto o en 1080p.');
+      }
+      await new Promise(r => requestAnimationFrame(r));
+      o.draw();
+      const fr = new VideoFrame(cv, {timestamp:Math.round(i * 1e6 / fps), duration:Math.round(1e6 / fps)});
+      enc.encode(fr, {keyFrame:i % fps === 0}); fr.close();
+      while (enc.encodeQueueSize > 6) await sleep(8);
+      if (i % 3 === 0){ const p = Math.min(99, Math.round(i / N * 100)); expUI({text:'Creando el video… ' + p + '%. Deja esta pantalla abierta.', pct:p}); await sleep(0); }
+    }
+    await enc.flush(); enc.close(); enc = null;
+    if (err) throw err;
+    if (!out.length || !desc) throw new Error('El teléfono no generó el video. Prueba de nuevo.');
+    const blob = mp4Build(out, desc, cv.width, cv.height, fps), name = o.name + '.mp4';
+    expUI({text:'Listo ✓ Toca el botón y elige "Guardar video".', close:true, save:() => doSave(name, blob)});
+    return 'done';
+  } catch (e){
+    try { if (enc && enc.state !== 'closed') enc.close(); } catch (_) {}
+    expUI({text:'No se pudo exportar: ' + ((e && e.message) || 'error desconocido'), close:true});
+    return 'done';
+  } finally {
+    VID.busy = false; o.end && o.end();
+  }
+}
+
 /* Graba el canvas mientras suena el video. Siempre responde algo en pantalla: progreso, error o botón de guardar. */
 async function recordExport(o){
   const v = VID.el;
   if (VID.busy){ expUI({text:'Ya hay una exportación en curso. Espera a que termine.', close:true}); return; }
   if (!v || !VID.ready){ expUI({text:'Primero sube el video de la técnica.', close:true}); return; }
+  if (await encodeExport(o) === 'done') return;
   if (!window.MediaRecorder || !o.canvas.captureStream){ expUI({text:'Este navegador no puede grabar video. Abre la app en Safari (iPhone) o Chrome actualizado.', close:true}); return; }
   const mime = ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(m => { try { return MediaRecorder.isTypeSupported(m); } catch (_) { return false; } });
   if (!mime){ expUI({text:'Este navegador no sabe guardar el video en un formato compatible.', close:true}); return; }
