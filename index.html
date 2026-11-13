@@ -230,8 +230,8 @@ body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
       <label for="chP3">Punto 3</label><textarea id="chP3" rows="2"></textarea>
     </section>
     <section class="sec">
-      <h2>4 · Videos del proceso (lámina 3 y TikTok)</h2>
-      <div class="drop">Sube los videos de los ejercicios de tu cambio (hasta 8). Cada uno sale en el TikTok hasta 7 s.
+      <h2>4 · Videos del proceso (láminas de proceso y TikTok)</h2>
+      <div class="drop">Sube los videos de los ejercicios de tu cambio (hasta 9). Cada lámina lleva 3 videos; cada uno sale en el TikTok hasta 7 s.
         <div class="row" style="justify-content:center;margin-top:10px"><button class="btn pri" id="chVUp" type="button">Subir videos</button></div>
         <input type="file" id="chVF" accept="video/*" multiple hidden>
       </div>
@@ -254,7 +254,7 @@ body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
       <div class="row" style="margin-top:8px"><button class="btn pri" id="chExp" type="button" disabled>Exportar video TikTok</button></div>
     </section>
   </div>
-  <div id="chP" style="min-width:0"><div class="pv" id="chpv"></div><div class="bar"><button class="btn pri" id="chZip" type="button">Guardar las 4 (.zip)</button></div></div>
+  <div id="chP" style="min-width:0"><div class="pv" id="chpv"></div><div class="bar"><button class="btn pri" id="chZip" type="button">Guardar las láminas (.zip)</button></div></div>
 </div>
 <div id="expo" hidden style="position:fixed;inset:0;z-index:60;background:rgba(7,8,11,.94);display:flex;align-items:center;justify-content:center;padding:24px">
   <div class="sec" style="max-width:340px;width:100%;text-align:center">
@@ -1206,13 +1206,16 @@ function detectVideo(c){
 }
 
 /* ───────── láminas ───────── */
+let BOVR = null;
 function base(ctx, n, last){
+  if (BOVR){ n = BOVR.n; }
+  const tot = BOVR ? BOVR.tot : 4;
   ctx.fillStyle = '#07080b'; ctx.fillRect(0, 0, W, H);
   const g = ctx.createRadialGradient(W/2, -80, 40, W/2, -80, 980);
   g.addColorStop(0, 'rgba(255,255,255,.075)'); g.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   txt(ctx, 'JELIAN FT', M, 76, {px:22, ls:7.5, color:GRAY});
-  txt(ctx, '0' + n + ' / 04', R, 76, {px:22, ls:5, color:GRAY, align:'right'});
+  txt(ctx, '0' + n + ' / 0' + tot, R, 76, {px:22, ls:5, color:GRAY, align:'right'});
   if (last) txt(ctx, 'JELIAN FT', W/2, 1292, {px:22, ls:7.5, color:GRAY, align:'center'});
 }
 function footer(ctx){
@@ -1526,8 +1529,9 @@ function init(){
 }
 /* ───────── MI CAMBIO (antes/después + videos del proceso) ───────── */
 const CH_HOOKS = ['¿Quieres saber cómo pasé de esto a esto?', 'Mis piernas eran delgadas. Mira cómo están hoy', '¿Quieres mi cambio físico? No es genética', 'No te creas a quien dice que es genética'];
-const CH_NAMES = ['Portada', 'Mensaje', 'Proceso', 'Promo'];
-const C = {live:false, btn3:null, hook:CH_HOOKS[0], hookIdx:0, wt:'¿Genética? No.', weeks:'', gain:'', capDirty:false,
+const CH_PER = 3;   /* videos por lámina de proceso */
+const CH_MAXP = 3;  /* máximo de láminas de proceso */
+const C = {live:false, hook:CH_HOOKS[0], hookIdx:0, wt:'¿Genética? No.', weeks:'', gain:'', capDirty:false,
   pts:['Mis piernas eran delgadas. Hoy tienen masa muscular.', 'No fue genética: fue un método y constancia.', 'Te muestro los ejercicios exactos de mi proceso.'],
   ct:'¿Quieres tu cambio?', cs:'Pide tu acceso a la app JELIAN FT Atleta en jelianft.com (link en mi bio).',
   ph:{b:{img:null, date:'', kg:'', z:1, y:0}, a:{img:null, date:'', kg:'', z:1, y:0}}, clips:[]};
@@ -1567,23 +1571,30 @@ function chS2(ctx){
   });
   footer(ctx);
 }
-function chS3(ctx){
-  base(ctx, 3); eyebrow(ctx, 'El proceso');
+/* Láminas de proceso: 3 videos por lámina, en 3 columnas altas para que cada video se vea grande. */
+function chNP(){ return Math.min(CH_MAXP, Math.max(1, Math.ceil(C.clips.length / CH_PER))); }
+function chPlan(){
+  const P = chNP(), pl = [{fn:chS1, nm:'Portada'}, {fn:chS2, nm:'Mensaje'}];
+  for (let k = 0; k < P; k++) pl.push({fn:ctx => chSP(ctx, k), nm:P > 1 ? 'Proceso ' + (k + 1) : 'Proceso', proc:k});
+  pl.push({fn:chS4, nm:'Promo'}); return pl;
+}
+function chSP(ctx, k){
+  const P = chNP();
+  base(ctx, 3 + k); eyebrow(ctx, 'El proceso' + (P > 1 ? ' · ' + (k + 1) + '/' + P : ''));
   const f = fit(ctx, 'LOS EJERCICIOS QUE ME LLEVARON AHÍ', {maxW:R - M, maxLines:2, start:84, min:46, wt:900, lsEm:-.045});
-  const y = drawLines(ctx, f.lines, M, 190, f.px, f.ls, .94), cl = C.clips.slice(0, 6), top = y + 48, bot = 1190;
+  const y = drawLines(ctx, f.lines, M, 190, f.px, f.ls, .94), cl = C.clips.slice(k * CH_PER, k * CH_PER + CH_PER), top = y + 48, bot = 1190;
   if (!cl.length){ txt(ctx, 'SUBE LOS VIDEOS DEL PROCESO', W/2, (top + bot)/2, {px:26, ls:6, color:GRAY, align:'center'}); footer(ctx); return; }
-  const gap = 24, rows = Math.ceil(cl.length / 2), cw = (R - M - gap) / 2, ch = (bot - top - (rows - 1) * gap) / rows;
+  const gap = 20, cw = (R - M - gap * (CH_PER - 1)) / CH_PER, ch = bot - top;
   cl.forEach((c, i) => {
-    const x = M + (i % 2) * (cw + gap), yy = top + Math.floor(i / 2) * (ch + gap);
+    const x = M + i * (cw + gap), yy = top;
     const lv = C.live && c.ok && c.el.videoWidth && c.el.readyState >= 2;
     drawCover(ctx, x, yy, cw, ch, 22, false, {img:lv ? c.el : c.th, strong:true, placeholder:'VIDEO'});
-    const nm = fit(ctx, c.name.trim().toUpperCase(), {maxW:cw - 40, maxLines:1, start:30, min:18, wt:800, lsEm:0});
-    txt(ctx, nm.lines[0] || '', x + 20, yy + ch - 22, {wt:800, px:nm.px, ls:nm.ls});
+    const nm = fit(ctx, c.name.trim().toUpperCase(), {maxW:cw - 36, maxLines:2, start:30, min:20, wt:800, lsEm:0});
+    if (nm.lines.length) drawLines(ctx, nm.lines, x + 18, yy + ch - 22 - blockH(nm.px, nm.lines.length, 1.12), nm.px, nm.ls, 1.12, {wt:800});
   });
   footer(ctx);
 }
 function chS4(ctx){ const a = [S.ct, S.cs]; S.ct = C.ct; S.cs = C.cs; try { slide4(ctx); } finally { [S.ct, S.cs] = a; } }
-const CDRAW = [chS1, chS2, chS3, chS4];
 
 function chTT(ctx, st){
   ctx.setTransform(ctx.canvas.width / TW, 0, 0, ctx.canvas.width / TW, 0, 0);
@@ -1614,9 +1625,20 @@ function chCaption(){
     'Ese método ahora está en la app JELIAN FT Atleta. Solicita tu acceso en jelianft.com (link en mi bio).', '',
     '#jelianft #cambiofisico #antesydespues #hipertrofia #fitnessecuador'].join('\n');
 }
+function chLayout(pl){
+  CCV.forEach((c, i) => {
+    const fig = c.parentNode, on = i < pl.length; fig.hidden = !on; if (!on) return;
+    fig.querySelector('span').textContent = '0' + (i + 1) + ' · ' + pl[i].nm;
+    c.setAttribute('aria-label', 'Lámina ' + (i + 1) + ': ' + pl[i].nm);
+    const b = fig.querySelector('button'), k = pl[i].proc;
+    b.textContent = (k !== undefined && C.clips.slice(k * CH_PER, k * CH_PER + CH_PER).some(x => x.ok)) ? 'Guardar video' : 'Guardar';
+  });
+  const z = $('chZip'); if (z) z.textContent = 'Guardar las ' + pl.length + ' (.zip)';
+}
 function renderCh(){
   if ($('chg').hidden) return;
-  CCV.forEach((c, i) => { const x = c.getContext('2d'); x.save(); CDRAW[i](x); x.restore(); });
+  const pl = chPlan(), tot = pl.length; chLayout(pl);
+  pl.forEach((q, i) => { const x = CCV[i].getContext('2d'); x.save(); BOVR = {n:i + 1, tot}; try { q.fn(x); } finally { BOVR = null; } x.restore(); });
   if (!C.capDirty) $('chCap').value = chCaption();
   if (!VID.busy) chTT($('cht').getContext('2d'), {k:'intro'});
 }
@@ -1659,7 +1681,7 @@ async function chAttach(c){
 let chQ = Promise.resolve();
 function chAddClips(files){
   for (const f of files){
-    if (C.clips.length >= 8){ toast('Máximo 8 videos'); break; }
+    if (C.clips.length >= 9){ toast('Máximo 9 videos (3 láminas de 3)'); break; }
     if (!(f.type.startsWith('video/') || /\.(mp4|mov|m4v|webm)$/i.test(f.name || ''))) continue;
     const c = {name:(f.name || 'Ejercicio').replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '), url:URL.createObjectURL(f), el:mkVideo('metadata'), ok:false, th:null, bad:false, removed:false, started:false};
     C.clips.push(c);
@@ -1679,7 +1701,6 @@ function chClipsUI(){
     box.append(r);
   });
   $('chExp').disabled = VID.busy || !C.clips.some(c => c.ok);
-  if (C.btn3) C.btn3.textContent = C.clips.some(c => c.ok) ? 'Guardar video' : 'Guardar';
 }
 const waitClip = (v, ms) => new Promise(r => { const t0 = Date.now(), w = setInterval(() => { if (v.ended || EXP.cancel || Date.now() - t0 > ms){ clearInterval(w); r(); } }, 150); });
 async function exportCh(){
@@ -1723,9 +1744,9 @@ async function exportCh(){
 }
 
 
-/* Lámina 3 como VIDEO: todos los ejercicios se mueven a la vez en su cuadro (como un carrusel de Instagram), sin botón de play. */
-async function exportCh3(){
-  const cl = C.clips.filter(c => c.ok).slice(0, 6), cv = CCV[2];
+/* Lámina de proceso como VIDEO: los 3 ejercicios se mueven a la vez en su cuadro (como un carrusel de Instagram), sin botón de play. */
+async function exportChP(k){
+  const cl = C.clips.slice(k * CH_PER, k * CH_PER + CH_PER).filter(c => c.ok), cv = CCV[2 + k], nOut = 3 + k, tot = chPlan().length;
   if (VID.busy){ expUI({text:'Ya hay una exportación en curso. Espera a que termine.', close:true}); return; }
   if (!cl.length) return;
   if (!window.MediaRecorder || !cv.captureStream){ expUI({text:'Este navegador no puede grabar video. Abre la app en Safari (iPhone) o Chrome actualizado.', close:true}); return; }
@@ -1741,7 +1762,7 @@ async function exportCh3(){
     try { rec = new MediaRecorder(stream, {mimeType:mime, videoBitsPerSecond:4000000}); } catch (_) { rec = new MediaRecorder(stream); }
     const chunks = []; rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
     const stopped = new Promise(r => rec.onstop = r);
-    run = true; const step = () => { if (!run) return; ctx.save(); chS3(ctx); ctx.restore(); requestAnimationFrame(step); }; step();
+    run = true; const step = () => { if (!run) return; ctx.save(); BOVR = {n:nOut, tot}; try { chSP(ctx, k); } finally { BOVR = null; } ctx.restore(); requestAnimationFrame(step); }; step();
     cl.forEach(c => { try { c.el.currentTime = 0; } catch (_) {} const p = c.el.play(); if (p && p.catch) p.catch(() => {}); });
     rec.start(250);
     const DUR = 8000, t0 = Date.now();
@@ -1750,7 +1771,7 @@ async function exportCh3(){
     if (EXP.cancel){ expUI({text:'Exportación cancelada.', close:true}); return; }
     const blob = new Blob(chunks, {type:mime.split(';')[0]});
     if (!blob.size) throw new Error('No se generó el video. Prueba de nuevo.');
-    expUI({text:'Listo ✓ Toca el botón y elige \"Guardar video\".' + (ext === 'webm' ? ' (Formato webm: en iPhone abre la app desde Safari para obtener mp4.)' : ''), close:true, save:() => doSave('jelian-cambio-03.' + ext, blob)});
+    expUI({text:'Listo ✓ Toca el botón y elige \"Guardar video\".' + (ext === 'webm' ? ' (Formato webm: en iPhone abre la app desde Safari para obtener mp4.)' : ''), close:true, save:() => doSave('jelian-cambio-0' + nOut + '.' + ext, blob)});
   } catch (e){
     expUI({text:'No se pudo exportar: ' + ((e && e.message) || 'error desconocido'), close:true});
   } finally {
@@ -1811,18 +1832,21 @@ function chInit(){
   $('chVUp').addEventListener('click', () => $('chVF').click());
   $('chVF').addEventListener('change', e => { const fs = [...e.target.files]; e.target.value = ''; chAddClips(fs); });
   const pv = $('chpv');
-  CH_NAMES.forEach((nm, i) => {
-    const c = document.createElement('canvas'); c.width = W; c.height = H; c.setAttribute('aria-label', 'Lámina ' + (i + 1) + ': ' + nm);
-    const f = document.createElement('figure'), cap = document.createElement('figcaption'), sp = document.createElement('span'); sp.textContent = '0' + (i + 1) + ' · ' + nm;
-    const sb = mkBtn('Guardar', async () => { if (i === 2 && C.clips.some(c => c.ok)){ exportCh3(); return; } renderCh(); await doSave('jelian-cambio-0' + (i + 1) + '.png', await toBlob(CCV[i])); });
-    if (i === 2) C.btn3 = sb;
+  for (let i = 0; i < 3 + CH_MAXP; i++){
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const f = document.createElement('figure'), cap = document.createElement('figcaption'), sp = document.createElement('span');
+    const sb = mkBtn('Guardar', async () => {
+      const q = chPlan()[i]; if (!q) return;
+      if (q.proc !== undefined && C.clips.slice(q.proc * CH_PER, q.proc * CH_PER + CH_PER).some(x => x.ok)){ exportChP(q.proc); return; }
+      renderCh(); await doSave('jelian-cambio-0' + (i + 1) + '.png', await toBlob(CCV[i]));
+    });
     cap.append(sp, sb);
     f.append(c, cap); pv.append(f); CCV.push(c);
-  });
+  }
   $('chZip').addEventListener('click', async () => {
     if (typeof JSZip === 'undefined'){ toast('No cargó el compresor; guarda las láminas una por una'); return; }
     renderCh(); const z = new JSZip();
-    for (let i = 0; i < 4; i++) z.file('jelian-cambio-0' + (i + 1) + '.png', await toBlob(CCV[i]));
+    const tot = chPlan().length; for (let i = 0; i < tot; i++) z.file('jelian-cambio-0' + (i + 1) + '.png', await toBlob(CCV[i]));
     z.file('pie-de-foto.txt', $('chCap').value); await doSave('jelian-cambio.zip', await z.generateAsync({type:'blob'}));
   });
   $('chCap').addEventListener('input', () => { C.capDirty = true; });
