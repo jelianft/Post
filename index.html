@@ -65,11 +65,18 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
 </style>
 
+<style>
+.modes{margin-left:auto;display:flex;gap:8px}
+.chg{max-width:1240px;margin:22px auto 0;display:grid;gap:22px 28px;grid-template-columns:1fr}
+.chg #chP{order:-1}
+@media(min-width:880px){.chg{grid-template-columns:390px minmax(0,1fr);align-items:start}.chg #chP{order:0;position:sticky;top:12px;grid-column:2;grid-row:1}.chg #chF{grid-column:1;grid-row:1}}
+</style>
 <div class="wrap">
   <header>
     <img src="icon-192.png" alt="JFT" width="46" height="46" style="border-radius:11px;align-self:center">
     <h1>Posts JELIAN FT</h1>
     <p>Un ejercicio de tu biblioteca, cuatro láminas listas para Instagram.</p>
+    <div class="modes"><button class="btn pri" id="modeEx" type="button">Ejercicio</button><button class="btn" id="modeCh" type="button">Mi cambio</button></div>
   </header>
 
   <section class="sec" id="pick">
@@ -192,6 +199,49 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
       <div class="row" style="margin-top:8px"><button class="btn" id="capTTCopy" type="button">Copiar</button><button class="btn" id="capTTReset" type="button">Restablecer</button></div>
     </section>
   </div>
+</div>
+<div id="chg" class="chg" hidden>
+  <div id="chF" style="display:grid;gap:14px;min-width:0">
+    <section class="sec"><h2>1 · Fotos antes y ahora</h2><div id="chPh"></div></section>
+    <section class="sec">
+      <h2>2 · Datos y gancho</h2>
+      <div class="row"><input type="text" id="chWk" placeholder="Semanas (ej. 17)" inputmode="numeric" style="flex:1 1 100px;width:auto" aria-label="Semanas"><input type="text" id="chGn" placeholder="Kg de músculo (ej. 4)" inputmode="decimal" style="flex:1 1 100px;width:auto" aria-label="Kilos de músculo"></div>
+      <label for="chHook">Gancho</label><textarea id="chHook" rows="3"></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn" id="chHookBtn" type="button">Otro gancho</button></div>
+    </section>
+    <section class="sec">
+      <h2>3 · Mensaje (lámina 2)</h2>
+      <label for="chWt">Título</label><input type="text" id="chWt">
+      <label for="chP1">Punto 1</label><textarea id="chP1" rows="2"></textarea>
+      <label for="chP2">Punto 2</label><textarea id="chP2" rows="2"></textarea>
+      <label for="chP3">Punto 3</label><textarea id="chP3" rows="2"></textarea>
+    </section>
+    <section class="sec">
+      <h2>4 · Videos del proceso (lámina 3 y TikTok)</h2>
+      <div class="drop">Sube los videos de los ejercicios de tu cambio (hasta 8). Cada uno sale en el TikTok hasta 7 s.
+        <div class="row" style="justify-content:center;margin-top:10px"><button class="btn pri" id="chVUp" type="button">Subir videos</button></div>
+        <input type="file" id="chVF" accept="video/*" multiple hidden>
+      </div>
+      <div id="chClips"></div>
+      <p class="hint">Ponle nombre a cada ejercicio; ↑ cambia el orden. Los videos se quedan en este navegador, no se suben a ningún servidor.</p>
+    </section>
+    <section class="sec"><details><summary>5 · Última lámina</summary>
+      <label for="chCt">Título</label><input type="text" id="chCt">
+      <label for="chCs">Texto de apoyo</label><textarea id="chCs" rows="2"></textarea>
+    </details></section>
+    <section class="sec">
+      <h2>6 · Pie de foto</h2>
+      <textarea id="chCap" rows="10"></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn" id="chCapCopy" type="button">Copiar</button><button class="btn" id="chCapReset" type="button">Restablecer</button></div>
+    </section>
+    <section class="sec">
+      <h2>7 · TikTok (vertical 9:16)</h2>
+      <canvas id="cht" width="720" height="1280" aria-label="Vista previa de la portada del video para TikTok" style="display:block;width:100%;max-width:300px;aspect-ratio:9/16;height:auto;border-radius:12px;border:1px solid var(--line);background:#07080b;margin:0 auto"></canvas>
+      <p class="hint">El video une la portada (antes/ahora, 2,5 s), cada ejercicio con su nombre y un cierre. Sin sonido, igual que tus otros videos.</p>
+      <div class="row" style="margin-top:8px"><button class="btn pri" id="chExp" type="button" disabled>Exportar video TikTok</button></div>
+    </section>
+  </div>
+  <div id="chP" style="min-width:0"><div class="pv" id="chpv"></div><div class="bar"><button class="btn pri" id="chZip" type="button">Guardar las 4 (.zip)</button></div></div>
 </div>
 <div id="expo" hidden style="position:fixed;inset:0;z-index:60;background:rgba(7,8,11,.94);display:flex;align-items:center;justify-content:center;padding:24px">
   <div class="sec" style="max-width:340px;width:100%;text-align:center">
@@ -1456,7 +1506,230 @@ function init(){
   const f = ['500 30px Inter', '700 30px Inter', '900 30px Inter'].map(s => document.fonts.load(s));
   const resched = () => { TTL.key = ''; TTL.sk = ''; schedule(); }; Promise.all(f).then(resched, resched); document.fonts.ready.then(resched);
 }
+/* ───────── MI CAMBIO (antes/después + videos del proceso) ───────── */
+const CH_HOOKS = ['¿Quieres saber cómo pasé de esto a esto?', 'Mis piernas eran delgadas. Mira cómo están hoy', '¿Quieres mi cambio físico? No es genética', 'No te creas a quien dice que es genética'];
+const CH_NAMES = ['Portada', 'Mensaje', 'Proceso', 'Promo'];
+const C = {hook:CH_HOOKS[0], hookIdx:0, wt:'¿Genética? No.', weeks:'', gain:'', capDirty:false,
+  pts:['Mis piernas eran delgadas. Hoy tienen masa muscular.', 'No fue genética: fue un método y constancia.', 'Te muestro los ejercicios exactos de mi proceso.'],
+  ct:'¿Quieres tu cambio?', cs:'Pide tu acceso a la app JELIAN FT Atleta en jelianft.com (link en mi bio).',
+  ph:{b:{img:null, date:'', kg:'', z:1, y:0}, a:{img:null, date:'', kg:'', z:1, y:0}}, clips:[]};
+const CCV = []; let craf = 0;
+const chSched = () => { cancelAnimationFrame(craf); craf = requestAnimationFrame(renderCh); };
+const mkBtn = (t, fn) => { const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.textContent = t; b.addEventListener('click', fn); return b; };
+
+function chPhotos(ctx, top, bot, r){
+  const gw = (R - M - 24) / 2;
+  [['b', 'ANTES', M], ['a', 'AHORA', M + gw + 24]].forEach(([k, lab, x]) => {
+    const p = C.ph[k];
+    drawCover(ctx, x, top, gw, bot - top, r, false, {img:p.img, view:{zoom:p.z, ox:0, oy:p.y}, strong:true, placeholder:'SUBE TU FOTO'});
+    txt(ctx, lab, x + gw/2, bot - 64, {wt:900, px:44, ls:3, align:'center'});
+    const sub = [p.date.trim(), p.kg.trim() && p.kg.trim() + ' kg'].filter(Boolean).join(' · ');
+    if (sub) txt(ctx, sub, x + gw/2, bot - 24, {wt:700, px:26, ls:1, color:'#d7dae0', align:'center'});
+  });
+}
+function chS1(ctx){
+  base(ctx, 1); eyebrow(ctx, 'Mi cambio' + (C.weeks.trim() ? ' · ' + C.weeks.trim() + ' semanas' : ''));
+  const f = fit(ctx, C.hook.trim().toUpperCase(), {maxW:R - M, maxLines:4, start:104, min:52, wt:900, lsEm:-.045}), n = f.lines.length;
+  let y = drawLines(ctx, f.lines.slice(0, Math.max(1, n - 1)), M, 190, f.px, f.ls, .94);
+  if (n > 1) y = drawLines(ctx, f.lines.slice(-1), M, y + (.94 - CAP) * f.px, f.px, f.ls, .94, {mode:'stroke', sw:Math.max(2.5, f.px * .032)});
+  chPhotos(ctx, y + 48, 1190, 28);
+  txt(ctx, 'DESLIZA →', R, 1250, {px:22, ls:6.5, color:GRAY, align:'right'});
+}
+function chS2(ctx){
+  base(ctx, 2); eyebrow(ctx, 'Sin excusas');
+  const f = fit(ctx, C.wt.trim().toUpperCase(), {maxW:R - M, maxLines:2, start:104, min:56, wt:900, lsEm:-.045});
+  const y = drawLines(ctx, f.lines, M, 190, f.px, f.ls, .94);
+  const pts = C.pts.map(s => s.trim()).filter(Boolean), n = pts.length || 1, top = y + 56, rh = (1190 - top) / n;
+  pts.forEach((p, i) => {
+    const ry = top + i * rh; ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(M, ry, R - M, 2);
+    const tx = M + 150, tf = fit(ctx, p, {maxW:R - tx, maxLines:4, start:44, min:28, wt:500, lsEm:-.01});
+    const bh = blockH(tf.px, tf.lines.length, 1.28), ty = ry + (rh - bh) / 2;
+    txt(ctx, String(i + 1).padStart(2, '0'), M, ry + rh/2 + CAP * 64/2, {wt:900, px:64, ls:-2.5, mode:'stroke', sw:2.5});
+    tf.lines.forEach((l, k) => txt(ctx, l, tx, ty + CAP * tf.px + k * tf.px * 1.28, {wt:500, px:tf.px, ls:tf.ls, color:'#e9eaee'}));
+  });
+  footer(ctx);
+}
+function chS3(ctx){
+  base(ctx, 3); eyebrow(ctx, 'El proceso');
+  const f = fit(ctx, 'LOS EJERCICIOS QUE ME LLEVARON AHÍ', {maxW:R - M, maxLines:2, start:84, min:46, wt:900, lsEm:-.045});
+  const y = drawLines(ctx, f.lines, M, 190, f.px, f.ls, .94), cl = C.clips.slice(0, 6), top = y + 48, bot = 1190;
+  if (!cl.length){ txt(ctx, 'SUBE LOS VIDEOS DEL PROCESO', W/2, (top + bot)/2, {px:26, ls:6, color:GRAY, align:'center'}); footer(ctx); return; }
+  const gap = 24, rows = Math.ceil(cl.length / 2), cw = (R - M - gap) / 2, ch = (bot - top - (rows - 1) * gap) / rows;
+  cl.forEach((c, i) => {
+    const x = M + (i % 2) * (cw + gap), yy = top + Math.floor(i / 2) * (ch + gap);
+    drawCover(ctx, x, yy, cw, ch, 22, true, {img:c.th, strong:true, placeholder:'VIDEO'});
+    const nm = fit(ctx, c.name.trim().toUpperCase(), {maxW:cw - 40, maxLines:1, start:30, min:18, wt:800, lsEm:0});
+    txt(ctx, nm.lines[0] || '', x + 20, yy + ch - 22, {wt:800, px:nm.px, ls:nm.ls});
+  });
+  footer(ctx);
+}
+function chS4(ctx){ const a = [S.ct, S.cs]; S.ct = C.ct; S.cs = C.cs; try { slide4(ctx); } finally { [S.ct, S.cs] = a; } }
+const CDRAW = [chS1, chS2, chS3, chS4];
+
+function chTT(ctx, st){
+  ctx.setTransform(ctx.canvas.width / TW, 0, 0, ctx.canvas.width / TW, 0, 0);
+  ctx.fillStyle = '#07080b'; ctx.fillRect(0, 0, TW, TH);
+  if (st.k === 'clip'){
+    const v = st.v, vw = v.videoWidth, vh = v.videoHeight;
+    if (vw){ const dh = vh * TW / vw; try { ctx.drawImage(v, 0, 930 - dh/2, TW, dh); } catch (_) {} }
+    let g = ctx.createLinearGradient(0, 0, 0, 520); g.addColorStop(0, 'rgba(7,8,11,.85)'); g.addColorStop(1, 'rgba(7,8,11,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, TW, 520);
+    g = ctx.createLinearGradient(0, 1180, 0, 1560); g.addColorStop(0, 'rgba(7,8,11,0)'); g.addColorStop(1, 'rgba(7,8,11,.88)'); ctx.fillStyle = g; ctx.fillRect(0, 1180, TW, 380);
+    txt(ctx, 'MI PROCESO · ' + (st.i + 1) + ' / ' + st.n, M, 340, {px:26, ls:6, color:'#c9ccd3'});
+    const f = fit(ctx, st.name.trim().toUpperCase(), {maxW:R - M, maxLines:2, start:64, min:34, wt:900, lsEm:-.03});
+    drawLines(ctx, f.lines, M, 1500 - blockH(f.px, f.lines.length, .96), f.px, f.ls, .96);
+  } else if (st.k === 'outro'){
+    txt(ctx, 'TU TURNO', TW/2, 700, {px:26, ls:8, color:GRAY, align:'center'});
+    const f = fit(ctx, C.ct.trim().toUpperCase(), {maxW:W - 2*M - 40, maxLines:3, start:110, min:56, wt:900, lsEm:-.045});
+    f.lines.forEach((l, i) => txt(ctx, l, TW/2, 780 + CAP * f.px + i * f.px * .94, {wt:900, px:f.px, ls:f.ls, align:'center'}));
+    txt(ctx, 'jelianft.com', TW/2, 780 + blockH(f.px, f.lines.length, .94) + 150, {wt:900, px:84, ls:-3, align:'center'});
+  } else {
+    const f = fit(ctx, C.hook.trim().toUpperCase(), {maxW:R - M, maxLines:4, start:96, min:48, wt:900, lsEm:-.04});
+    chPhotos(ctx, drawLines(ctx, f.lines, M, 330, f.px, f.ls, .96) + 50, 1500, 26);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+function chCaption(){
+  const res = [C.weeks.trim() && C.weeks.trim() + ' semanas.', C.gain.trim() && '+' + C.gain.trim() + ' kg de músculo.', 'Un método.'].filter(Boolean).join(' ');
+  return [C.hook.trim(), '', res, 'No te lleves de los que te dicen que es por genética. Aquí van los ejercicios exactos de mi proceso 👇', '',
+    C.pts.map(s => s.trim()).filter(Boolean).map(s => '✅ ' + s).join('\n'), '',
+    'Ese método ahora está en la app JELIAN FT Atleta. Solicita tu acceso en jelianft.com (link en mi bio).', '',
+    '#jelianft #cambiofisico #antesydespues #hipertrofia #fitnessecuador'].join('\n');
+}
+function renderCh(){
+  if ($('chg').hidden) return;
+  CCV.forEach((c, i) => { const x = c.getContext('2d'); x.save(); CDRAW[i](x); x.restore(); });
+  if (!C.capDirty) $('chCap').value = chCaption();
+  if (!VID.busy) chTT($('cht').getContext('2d'), {k:'intro'});
+}
+
+/* videos del proceso */
+function chThumb(c){
+  const v = c.el; if (c.ok || !v.videoWidth) return; c.ok = true;
+  const go = () => {
+    const sc = Math.min(1, 800 / v.videoWidth), k = document.createElement('canvas'); k.width = Math.round(v.videoWidth * sc); k.height = Math.round(v.videoHeight * sc);
+    try { k.getContext('2d').drawImage(v, 0, 0, k.width, k.height); c.th = k; } catch (_) {}
+    chClipsUI(); chSched();
+  };
+  v.addEventListener('seeked', go, {once:true});
+  try { v.currentTime = Math.max(.05, Math.min((v.duration || 1) - .1, (v.duration || 1) * .3)); } catch (_) { go(); }
+}
+function chAddClips(files){
+  for (const f of files){
+    if (C.clips.length >= 8){ toast('Máximo 8 videos'); break; }
+    if (!(f.type.startsWith('video/') || /\.(mp4|mov|m4v|webm)$/i.test(f.name || ''))) continue;
+    const c = {name:(f.name || 'Ejercicio').replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '), url:URL.createObjectURL(f), el:mkVideo(), ok:false, th:null};
+    ['loadedmetadata', 'loadeddata', 'canplay'].forEach(ev => c.el.addEventListener(ev, () => chThumb(c)));
+    c.el.addEventListener('error', () => toast('No pude abrir "' + c.name + '". Prueba con un .mp4 (H.264).'));
+    c.el.src = c.url; C.clips.push(c);
+    setTimeout(() => { if (!c.ok && c.el.isConnected){ const p = c.el.play(); if (p && p.then) p.then(() => { c.el.pause(); chThumb(c); }).catch(() => {}); } }, 900);
+  }
+  chClipsUI();
+}
+function chClipsUI(){
+  const box = $('chClips'); box.textContent = '';
+  C.clips.forEach((c, i) => {
+    const r = document.createElement('div'); r.className = 'row'; r.style.marginTop = '8px';
+    const inp = document.createElement('input'); inp.type = 'text'; inp.value = c.name; inp.style.cssText = 'flex:1 1 140px;width:auto'; inp.setAttribute('aria-label', 'Nombre del ejercicio ' + (i + 1));
+    inp.addEventListener('input', () => { c.name = inp.value; chSched(); });
+    r.append(inp, mkBtn('↑', () => { if (i){ [C.clips[i - 1], C.clips[i]] = [C.clips[i], C.clips[i - 1]]; chClipsUI(); chSched(); } }),
+      mkBtn('✕', () => { try { c.el.pause(); c.el.removeAttribute('src'); c.el.load(); c.el.remove(); URL.revokeObjectURL(c.url); } catch (_) {} C.clips.splice(i, 1); chClipsUI(); chSched(); }));
+    box.append(r);
+  });
+  $('chExp').disabled = VID.busy || !C.clips.some(c => c.ok);
+}
+const waitClip = (v, ms) => new Promise(r => { const t0 = Date.now(), w = setInterval(() => { if (v.ended || EXP.cancel || Date.now() - t0 > ms){ clearInterval(w); r(); } }, 150); });
+async function exportCh(){
+  const cl = C.clips.filter(c => c.ok), cv = $('cht');
+  if (VID.busy){ expUI({text:'Ya hay una exportación en curso. Espera a que termine.', close:true}); return; }
+  if (!cl.length){ expUI({text:'Primero sube al menos un video del proceso.', close:true}); return; }
+  if (!window.MediaRecorder || !cv.captureStream){ expUI({text:'Este navegador no puede grabar video. Abre la app en Safari (iPhone) o Chrome actualizado.', close:true}); return; }
+  const mime = ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(m => { try { return MediaRecorder.isTypeSupported(m); } catch (_) { return false; } });
+  if (!mime){ expUI({text:'Este navegador no sabe guardar el video en un formato compatible.', close:true}); return; }
+  const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm', ctx = cv.getContext('2d'), total = cl.length + 2;
+  VID.busy = true; EXP.cancel = false; $('chExp').disabled = true;
+  let st = {k:'intro'}, run = true, rec = null, done = 0;
+  const prog = t => expUI({text:t + ' Deja esta pantalla abierta.', pct:Math.round(done / total * 100)});
+  try {
+    const stream = cv.captureStream(30);
+    try { rec = new MediaRecorder(stream, {mimeType:mime, videoBitsPerSecond:3500000}); } catch (_) { rec = new MediaRecorder(stream); }
+    const chunks = []; rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    const stopped = new Promise(r => rec.onstop = r);
+    const step = () => { if (!run) return; chTT(ctx, st); requestAnimationFrame(step); }; step();
+    rec.start(250); prog('Grabando la portada…');
+    await waitClip({ended:false}, 2500); done++;
+    for (let i = 0; i < cl.length && !EXP.cancel; i++){
+      const v = cl[i].el; prog('Grabando ejercicio ' + (i + 1) + ' de ' + cl.length + '…');
+      v.pause(); if (v.currentTime > .01){ v.currentTime = 0; await Promise.race([once(v, 'seeked'), sleep(1500)]); }
+      st = {k:'clip', v, i, n:cl.length, name:cl[i].name};
+      const pl = v.play(); if (pl && pl.catch) pl.catch(() => {});
+      await waitClip(v, Math.min(7, v.duration || 7) * 1000); v.pause(); done++;
+    }
+    if (!EXP.cancel){ st = {k:'outro'}; prog('Grabando el cierre…'); await waitClip({ended:false}, 2500); done++; }
+    await sleep(250); run = false; if (rec.state !== 'inactive') rec.stop(); await stopped;
+    if (EXP.cancel){ expUI({text:'Exportación cancelada.', close:true}); return; }
+    const blob = new Blob(chunks, {type:mime.split(';')[0]});
+    if (!blob.size) throw new Error('No se generó el video. Prueba de nuevo.');
+    expUI({text:'Listo ✓ Toca el botón y elige "Guardar video".' + (ext === 'webm' ? ' (Formato webm: en iPhone abre la app desde Safari para obtener mp4.)' : ''), close:true, save:() => doSave('jelian-cambio-tiktok.' + ext, blob)});
+  } catch (e){
+    expUI({text:'No se pudo exportar: ' + ((e && e.message) || 'error desconocido'), close:true});
+  } finally {
+    run = false; try { if (rec && rec.state !== 'inactive') rec.stop(); } catch (_) {}
+    cl.forEach(c => { try { c.el.pause(); } catch (_) {} }); VID.busy = false; chClipsUI(); chSched();
+  }
+}
+
+function setMode(m){
+  const ch = m === 'ch';
+  ['pick', 'prev', 'fields'].forEach(id => $(id).hidden = ch); $('chg').hidden = !ch;
+  $('modeEx').classList.toggle('pri', !ch); $('modeCh').classList.toggle('pri', ch);
+  if (ch) chSched(); else schedule();
+}
+function chInit(){
+  $('chPh').innerHTML = [['b', 'Antes'], ['a', 'Ahora']].map(([k, t]) => '<label>' + t + '</label>' +
+    '<div class="row"><button class="btn pri" id="c_' + k + 'Up" type="button">Subir foto de ' + t.toLowerCase() + '</button><input type="file" id="c_' + k + 'F" accept="image/*" hidden></div>' +
+    '<div class="row" style="margin-top:8px"><input type="text" id="c_' + k + 'D" placeholder="Fecha (ej. 16 oct 26)" style="flex:1 1 120px;width:auto" aria-label="Fecha ' + t.toLowerCase() + '"><input type="text" id="c_' + k + 'K" placeholder="Peso (kg)" inputmode="decimal" style="flex:1 1 80px;width:auto" aria-label="Peso ' + t.toLowerCase() + '"></div>' +
+    '<div class="rng"><span>Zoom</span><input type="range" id="c_' + k + 'Z" min="100" max="300" value="100" aria-label="Zoom foto ' + t.toLowerCase() + '"></div>' +
+    '<div class="rng"><span>Vertical</span><input type="range" id="c_' + k + 'Y" min="-100" max="100" value="0" aria-label="Posición vertical foto ' + t.toLowerCase() + '"></div>').join('<div style="height:14px"></div>');
+  const bi = (id, fn) => $(id).addEventListener('input', e => { fn(e.target.value); chSched(); });
+  ['b', 'a'].forEach(k => {
+    const p = C.ph[k];
+    $('c_' + k + 'Up').addEventListener('click', () => $('c_' + k + 'F').click());
+    $('c_' + k + 'F').addEventListener('change', e => {
+      const f = e.target.files[0]; e.target.value = ''; if (!f || !f.type.startsWith('image/')) return;
+      const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = () => { p.img = im; chSched(); }; im.src = r.result; }; r.readAsDataURL(f);
+    });
+    bi('c_' + k + 'D', v => p.date = v); bi('c_' + k + 'K', v => p.kg = v); bi('c_' + k + 'Z', v => p.z = v / 100); bi('c_' + k + 'Y', v => p.y = +v);
+  });
+  bi('chWk', v => C.weeks = v); bi('chGn', v => C.gain = v); bi('chHook', v => C.hook = v); bi('chWt', v => C.wt = v); bi('chCt', v => C.ct = v); bi('chCs', v => C.cs = v);
+  ['chP1', 'chP2', 'chP3'].forEach((id, i) => bi(id, v => C.pts[i] = v));
+  $('chHook').value = C.hook; $('chWt').value = C.wt; $('chCt').value = C.ct; $('chCs').value = C.cs;
+  ['chP1', 'chP2', 'chP3'].forEach((id, i) => $(id).value = C.pts[i]);
+  $('chHookBtn').addEventListener('click', () => { C.hookIdx = (C.hookIdx + 1) % CH_HOOKS.length; C.hook = CH_HOOKS[C.hookIdx]; $('chHook').value = C.hook; chSched(); });
+  $('chVUp').addEventListener('click', () => $('chVF').click());
+  $('chVF').addEventListener('change', e => { const fs = [...e.target.files]; e.target.value = ''; chAddClips(fs); });
+  const pv = $('chpv');
+  CH_NAMES.forEach((nm, i) => {
+    const c = document.createElement('canvas'); c.width = W; c.height = H; c.setAttribute('aria-label', 'Lámina ' + (i + 1) + ': ' + nm);
+    const f = document.createElement('figure'), cap = document.createElement('figcaption'), sp = document.createElement('span'); sp.textContent = '0' + (i + 1) + ' · ' + nm;
+    cap.append(sp, mkBtn('Guardar', async () => { renderCh(); await doSave('jelian-cambio-0' + (i + 1) + '.png', await toBlob(CCV[i])); }));
+    f.append(c, cap); pv.append(f); CCV.push(c);
+  });
+  $('chZip').addEventListener('click', async () => {
+    if (typeof JSZip === 'undefined'){ toast('No cargó el compresor; guarda las láminas una por una'); return; }
+    renderCh(); const z = new JSZip();
+    for (let i = 0; i < 4; i++) z.file('jelian-cambio-0' + (i + 1) + '.png', await toBlob(CCV[i]));
+    z.file('pie-de-foto.txt', $('chCap').value); await doSave('jelian-cambio.zip', await z.generateAsync({type:'blob'}));
+  });
+  $('chCap').addEventListener('input', () => { C.capDirty = true; });
+  $('chCapReset').addEventListener('click', () => { C.capDirty = false; $('chCap').value = chCaption(); });
+  $('chCapCopy').addEventListener('click', async () => { try { await navigator.clipboard.writeText($('chCap').value); toast('Pie de foto copiado'); } catch (_) { $('chCap').select(); toast('Selecciónalo y cópialo'); } });
+  $('chExp').addEventListener('click', exportCh);
+  $('modeEx').addEventListener('click', () => setMode('ex')); $('modeCh').addEventListener('click', () => setMode('ch'));
+  document.fonts.ready.then(chSched);
+}
+
 init();
+chInit();
 /* App instalable: se actualiza sola. Revisa versión nueva al abrir, al volver a la app y cada 30 min. */
 if ('serviceWorker' in navigator){
   const had = !!navigator.serviceWorker.controller; let reloading = false;
