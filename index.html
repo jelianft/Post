@@ -735,8 +735,8 @@ function fillFields(){
 }
 
 /* ───────── video de la técnica ───────── */
-function mkVideo(){
-  const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto';
+function mkVideo(pl){
+  const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = pl || 'auto';
   v.style.cssText = 'position:fixed;left:0;top:0;width:180px;height:100px;opacity:.02;pointer-events:none;z-index:-1'; document.body.append(v); return v;
 }
 const once = (el, ev) => new Promise(r => el.addEventListener(ev, r, {once:true}));
@@ -1620,26 +1620,45 @@ function renderCh(){
   if (!VID.busy) chTT($('cht').getContext('2d'), {k:'intro'});
 }
 
-/* videos del proceso */
-function chThumb(c){
-  const v = c.el; if (c.ok || !v.videoWidth) return; c.ok = true;
-  const go = () => {
-    const sc = Math.min(1, 800 / v.videoWidth), k = document.createElement('canvas'); k.width = Math.round(v.videoWidth * sc); k.height = Math.round(v.videoHeight * sc);
-    try { k.getContext('2d').drawImage(v, 0, 0, k.width, k.height); c.th = k; } catch (_) {}
-    chClipsUI(); chSched();
-  };
-  v.addEventListener('seeked', go, {once:true});
-  try { v.currentTime = Math.max(.05, Math.min((v.duration || 1) - .1, (v.duration || 1) * .3)); } catch (_) { go(); }
+/* videos del proceso: se preparan de UNO en UNO y se libera el decodificador al terminar,
+   para que el teléfono no tenga 8 videos decodificando a la vez (eso era lo que lo hacía lento). */
+function chRelease(c){ try { const v = c.el; v.pause(); if (v.getAttribute('src')){ v.removeAttribute('src'); v.load(); } } catch (_) {} }
+function chPrep(c){
+  return new Promise(res => {
+    if (c.removed) return res();
+    const v = c.el; let fin = false, to;
+    const done = () => { if (fin) return; fin = true; clearTimeout(to); chRelease(c); res(); };
+    const draw = () => {
+      const sc = Math.min(1, 800 / v.videoWidth), k = document.createElement('canvas'); k.width = Math.round(v.videoWidth * sc); k.height = Math.round(v.videoHeight * sc);
+      try { k.getContext('2d').drawImage(v, 0, 0, k.width, k.height); c.th = k; } catch (_) {}
+      c.ok = true; done();
+    };
+    const go = () => {
+      if (fin || c.started || !v.videoWidth) return; c.started = true;
+      v.addEventListener('seeked', draw, {once:true});
+      try { v.currentTime = Math.max(.05, Math.min((v.duration || 1) - .1, (v.duration || 1) * .3)); } catch (_) { draw(); }
+    };
+    ['loadedmetadata', 'loadeddata', 'canplay'].forEach(ev => v.addEventListener(ev, go));
+    v.addEventListener('error', () => { if (fin) return; c.bad = true; toast('No pude abrir "' + c.name + '". Prueba con un .mp4 (H.264).'); done(); });
+    to = setTimeout(() => { if (!fin && !c.ok){ c.bad = true; toast('"' + c.name + '" tardó demasiado en abrir. Prueba con un .mp4 (H.264).'); } done(); }, 12000);
+    v.src = c.url;
+    /* iOS/Safari no descarga datos de un video oculto hasta que se intenta reproducir */
+    setTimeout(() => { if (!fin && !c.started){ const p = v.play(); if (p && p.then) p.then(() => { v.pause(); go(); }).catch(() => {}); } }, 900);
+  });
 }
+async function chAttach(c){
+  const v = c.el; if (v.getAttribute('src')) return;
+  v.src = c.url; v.load();
+  await Promise.race([new Promise(r => { if (v.readyState >= 2) r(); else v.addEventListener('loadeddata', r, {once:true}); }), sleep(5000)]);
+}
+let chQ = Promise.resolve();
 function chAddClips(files){
   for (const f of files){
     if (C.clips.length >= 8){ toast('Máximo 8 videos'); break; }
     if (!(f.type.startsWith('video/') || /\.(mp4|mov|m4v|webm)$/i.test(f.name || ''))) continue;
-    const c = {name:(f.name || 'Ejercicio').replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '), url:URL.createObjectURL(f), el:mkVideo(), ok:false, th:null};
-    ['loadedmetadata', 'loadeddata', 'canplay'].forEach(ev => c.el.addEventListener(ev, () => chThumb(c)));
-    c.el.addEventListener('error', () => toast('No pude abrir "' + c.name + '". Prueba con un .mp4 (H.264).'));
-    c.el.src = c.url; C.clips.push(c);
-    setTimeout(() => { if (!c.ok && c.el.isConnected){ const p = c.el.play(); if (p && p.then) p.then(() => { c.el.pause(); chThumb(c); }).catch(() => {}); } }, 900);
+    const c = {name:(f.name || 'Ejercicio').replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '), url:URL.createObjectURL(f), el:mkVideo('metadata'), ok:false, th:null, bad:false, removed:false, started:false};
+    C.clips.push(c);
+    chQ = chQ.then(() => chPrep(c)).then(() => { chClipsUI(); chSched(); });
   }
   chClipsUI();
 }
@@ -1649,8 +1668,9 @@ function chClipsUI(){
     const r = document.createElement('div'); r.className = 'row'; r.style.marginTop = '8px';
     const inp = document.createElement('input'); inp.type = 'text'; inp.value = c.name; inp.style.cssText = 'flex:1 1 140px;width:auto'; inp.setAttribute('aria-label', 'Nombre del ejercicio ' + (i + 1));
     inp.addEventListener('input', () => { c.name = inp.value; chSched(); });
-    r.append(inp, mkBtn('↑', () => { if (i){ [C.clips[i - 1], C.clips[i]] = [C.clips[i], C.clips[i - 1]]; chClipsUI(); chSched(); } }),
-      mkBtn('✕', () => { try { c.el.pause(); c.el.removeAttribute('src'); c.el.load(); c.el.remove(); URL.revokeObjectURL(c.url); } catch (_) {} C.clips.splice(i, 1); chClipsUI(); chSched(); }));
+    const stt = document.createElement('span'); stt.textContent = c.ok ? '✓' : c.bad ? '⚠' : '⏳'; stt.title = c.ok ? 'Listo' : c.bad ? 'No se pudo abrir' : 'Preparando…'; stt.style.cssText = 'flex:0 0 auto;font-size:15px';
+    r.append(stt, inp, mkBtn('↑', () => { if (i){ [C.clips[i - 1], C.clips[i]] = [C.clips[i], C.clips[i - 1]]; chClipsUI(); chSched(); } }),
+      mkBtn('✕', () => { c.removed = true; try { c.el.pause(); c.el.removeAttribute('src'); c.el.load(); c.el.remove(); URL.revokeObjectURL(c.url); } catch (_) {} C.clips.splice(i, 1); chClipsUI(); chSched(); }));
     box.append(r);
   });
   $('chExp').disabled = VID.busy || !C.clips.some(c => c.ok);
@@ -1677,8 +1697,8 @@ async function exportCh(){
     await waitClip({ended:false}, 2500); done++;
     for (let i = 0; i < cl.length && !EXP.cancel; i++){
       const v = cl[i].el; prog('Grabando ejercicio ' + (i + 1) + ' de ' + cl.length + '…');
-      v.pause(); if (v.currentTime > .01){ v.currentTime = 0; await Promise.race([once(v, 'seeked'), sleep(1500)]); }
-      st = {k:'clip', v, i, n:cl.length, name:cl[i].name};
+      await chAttach(cl[i]); v.pause(); if (v.currentTime > .01){ v.currentTime = 0; await Promise.race([once(v, 'seeked'), sleep(1500)]); }
+      st = {k:'clip', v, i, n:cl.length, name:cl[i].name}; if (i > 0) chRelease(cl[i - 1]);
       const pl = v.play(); if (pl && pl.catch) pl.catch(() => {});
       await waitClip(v, Math.min(7, v.duration || 7) * 1000); v.pause(); done++;
     }
@@ -1692,7 +1712,7 @@ async function exportCh(){
     expUI({text:'No se pudo exportar: ' + ((e && e.message) || 'error desconocido'), close:true});
   } finally {
     run = false; try { if (rec && rec.state !== 'inactive') rec.stop(); } catch (_) {}
-    cl.forEach(c => { try { c.el.pause(); } catch (_) {} }); VID.busy = false; chClipsUI(); chSched();
+    cl.forEach(c => chRelease(c)); VID.busy = false; chClipsUI(); chSched();
   }
 }
 
