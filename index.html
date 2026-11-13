@@ -71,15 +71,28 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
 .chg #chP{order:-1}
 @media(min-width:880px){.chg{grid-template-columns:390px minmax(0,1fr);align-items:start}.chg #chP{order:0;position:sticky;top:12px;grid-column:2;grid-row:1}.chg #chF{grid-column:1;grid-row:1}}
 </style>
+
+<style>
+/* Apartados: barra inferior fija. Instagram y TikTok comparten el ejercicio; Mi cambio tiene su propio flujo. */
+body[data-tab="ig"] [data-tabs]:not([data-tabs~="ig"]),body[data-tab="tt"] [data-tabs]:not([data-tabs~="tt"]){display:none!important}
+body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+#toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+#tabs{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;justify-content:center;background:rgba(14,16,21,.94);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+#tabs .in{display:flex;gap:6px;width:100%;max-width:520px}
+#tabs button{appearance:none;flex:1 1 0;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:none;border:0;border-radius:14px;color:var(--mut);font:700 11px/1 var(--f-body);letter-spacing:.03em;cursor:pointer;padding:6px 4px}
+#tabs button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#tabs button:hover{color:var(--fg)}
+#tabs button.on{color:var(--acc-ink);background:var(--acc)}
+@media(prefers-reduced-motion:no-preference){#tabs button{transition:background .15s,color .15s}}
+</style>
 <div class="wrap">
   <header>
     <img src="icon-192.png" alt="JFT" width="46" height="46" style="border-radius:11px;align-self:center">
     <h1>Posts JELIAN FT</h1>
-    <p>Un ejercicio de tu biblioteca, cuatro láminas listas para Instagram.</p>
-    <div class="modes"><button class="btn pri" id="modeEx" type="button">Ejercicio</button><button class="btn" id="modeCh" type="button">Mi cambio</button></div>
+    <p id="sub">Un ejercicio de tu biblioteca, cuatro láminas listas para Instagram.</p>
   </header>
 
-  <section class="sec" id="pick">
+  <section class="sec" id="pick" data-tabs="ig tt">
     <h2>1 · Ejercicio</h2>
     <label for="q">Buscar en la biblioteca</label>
     <input type="search" id="q" placeholder="pullover, jalón, sentadilla…" autocomplete="off">
@@ -87,7 +100,7 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
     <select id="ex" size="7" aria-label="Ejercicios de la biblioteca"></select>
   </section>
 
-  <section id="prev">
+  <section id="prev" data-tabs="ig">
     <div class="pv" id="pv"></div>
     <div class="bar">
       <button class="btn pri" id="zipBtn" type="button">Guardar las 4 (.zip)</button>
@@ -96,7 +109,7 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
   </section>
 
   <div id="fields">
-    <section class="sec">
+    <section class="sec" data-tabs="ig">
       <h2>1 · Mi foto en la portada</h2>
       <label class="chk"><input type="checkbox" id="meOn" checked> Usar mi foto en la portada</label>
       <div class="drop" id="medrop">
@@ -112,7 +125,7 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
       <div class="rng"><span>Vertical</span><input type="range" id="moy" min="-100" max="100" value="0" aria-label="Posición vertical de mi foto"></div>
     </section>
 
-    <section class="sec">
+    <section class="sec" data-tabs="ig tt">
       <h2>2 · Video de la técnica (lámina 2)</h2>
       <div class="drop" id="vdrop">
         Sube el archivo del video que grabaste.
@@ -130,7 +143,7 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
       <input type="range" id="vfr" min="0" max="100" value="35" disabled aria-label="Cuadro de la portada">
     </section>
 
-    <section class="sec">
+    <section class="sec" data-tabs="ig">
       <details>
         <summary>Portada manual (opcional)</summary>
         <label for="yt">Link del video (YouTube)</label>
@@ -149,7 +162,7 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
       </details>
     </section>
 
-    <section class="sec">
+    <section class="sec" data-tabs="ig tt">
       <h2>3 · Gancho y nombre del ejercicio</h2>
       <label for="hook">Gancho</label>
       <textarea id="hook" rows="2"></textarea>
@@ -158,7 +171,7 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
       <input type="text" id="name">
     </section>
 
-    <section class="sec">
+    <section class="sec" data-tabs="ig">
       <h2>4 · Por qué (lámina 3)</h2>
       <label for="wt">Título</label>
       <input type="text" id="wt">
@@ -168,7 +181,7 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
       <p class="hint" id="whyHint"></p>
     </section>
 
-    <section class="sec">
+    <section class="sec" data-tabs="ig">
       <details>
         <summary>5 · Última lámina y logo</summary>
         <label for="ct">Título</label><input type="text" id="ct">
@@ -178,13 +191,13 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
       </details>
     </section>
 
-    <section class="sec">
+    <section class="sec" data-tabs="ig">
       <h2>6 · Pie de foto</h2>
       <textarea id="cap" rows="10"></textarea>
       <div class="row" style="margin-top:8px"><button class="btn" id="capCopy" type="button">Copiar</button><button class="btn" id="capReset" type="button">Restablecer</button></div>
     </section>
 
-    <section class="sec">
+    <section class="sec" data-tabs="tt">
       <h2>7 · TikTok (vertical 9:16)</h2>
       <canvas id="ttc" width="720" height="1280" aria-label="Vista previa del video para TikTok" style="display:block;width:100%;max-width:300px;aspect-ratio:9/16;height:auto;border-radius:12px;border:1px solid var(--line);background:#07080b;margin:0 auto"></canvas>
       <p class="hint">Video vertical 720×1280 (el tamaño que TikTok recomienda para que cargue rápido): se ve completo sobre un fondo difuminado, con el gancho arriba y solo el paso actual abajo. Usa Zoom si lo quieres más cerca. Deja libre la parte de abajo y el costado derecho, donde TikTok pone sus botones.</p>
@@ -250,6 +263,11 @@ figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px
     <div class="row" style="justify-content:center;gap:10px"><button class="btn pri" id="expoS" type="button" hidden>Guardar en la galería</button><button class="btn" id="expoX" type="button">Cancelar</button></div>
   </div>
 </div>
+<nav id="tabs" aria-label="Apartados"><div class="in">
+  <button type="button" data-tab="ig" aria-label="Publicaciones de Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6" fill="currentColor"/></svg><span>Instagram</span></button>
+  <button type="button" data-tab="tt" aria-label="Videos de TikTok"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.4 2.6 2 4.2 5 4.5"/></svg><span>TikTok</span></button>
+  <button type="button" data-tab="ch" aria-label="Cambios físicos"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="7" height="15" rx="2"/><rect x="13.5" y="4.5" width="7" height="15" rx="2"/><path d="M10.5 12h3"/></svg><span>Mi cambio</span></button>
+</div></nav>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1678,10 +1696,32 @@ async function exportCh(){
   }
 }
 
-function setMode(m){
-  const ch = m === 'ch';
+const TAB_SUB = {
+  ig: 'Un ejercicio de tu biblioteca, cuatro láminas listas para Instagram.',
+  tt: 'El mismo ejercicio en video vertical 9:16 listo para TikTok.',
+  ch: 'Tu cambio físico: antes y ahora, láminas y video.'
+};
+function renumber(t){
+  if (t === 'ch') return;
+  let n = 0;
+  document.querySelectorAll('#pick h2, #fields h2, #fields summary').forEach(el => {
+    if (el.offsetParent === null || !/^\d+ · /.test(el.textContent)) return;
+    el.textContent = el.textContent.replace(/^\d+ · /, (++n) + ' · ');
+  });
+}
+function setTab(t){
+  if (!TAB_SUB[t]) t = 'ig';
+  const ch = t === 'ch';
+  document.body.dataset.tab = t;
   ['pick', 'prev', 'fields'].forEach(id => $(id).hidden = ch); $('chg').hidden = !ch;
-  $('modeEx').classList.toggle('pri', !ch); $('modeCh').classList.toggle('pri', ch);
+  document.querySelectorAll('#tabs button').forEach(b => {
+    const on = b.dataset.tab === t; b.classList.toggle('on', on);
+    if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+  $('sub').textContent = TAB_SUB[t];
+  renumber(t);
+  try { localStorage.setItem('jft_tab', t); } catch (_) {}
+  window.scrollTo(0, 0);
   if (ch) chSched(); else schedule();
 }
 function chInit(){
@@ -1724,12 +1764,14 @@ function chInit(){
   $('chCapReset').addEventListener('click', () => { C.capDirty = false; $('chCap').value = chCaption(); });
   $('chCapCopy').addEventListener('click', async () => { try { await navigator.clipboard.writeText($('chCap').value); toast('Pie de foto copiado'); } catch (_) { $('chCap').select(); toast('Selecciónalo y cópialo'); } });
   $('chExp').addEventListener('click', exportCh);
-  $('modeEx').addEventListener('click', () => setMode('ex')); $('modeCh').addEventListener('click', () => setMode('ch'));
+  $('tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) setTab(b.dataset.tab); });
   document.fonts.ready.then(chSched);
 }
 
 init();
 chInit();
+let t0 = 'ig'; try { t0 = localStorage.getItem('jft_tab') || 'ig'; } catch (_) {}
+setTab(t0);
 /* App instalable: se actualiza sola. Revisa versión nueva al abrir, al volver a la app y cada 30 min. */
 if ('serviceWorker' in navigator){
   const had = !!navigator.serviceWorker.controller; let reloading = false;
