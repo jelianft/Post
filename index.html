@@ -231,7 +231,7 @@ body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
     </section>
     <section class="sec">
       <h2>4 · Videos del proceso (láminas de proceso y TikTok)</h2>
-      <div class="drop">Sube los videos de los ejercicios de tu cambio (hasta 9). Cada lámina lleva 3 videos; cada uno sale en el TikTok hasta 7 s.
+      <div class="drop">Sube los videos de los ejercicios de tu cambio (hasta 3). Cada lámina lleva 1 video; cada uno sale en el TikTok hasta 7 s.
         <div class="row" style="justify-content:center;margin-top:10px"><button class="btn pri" id="chVUp" type="button">Subir videos</button></div>
         <input type="file" id="chVF" accept="video/*" multiple hidden>
       </div>
@@ -1529,7 +1529,7 @@ function init(){
 }
 /* ───────── MI CAMBIO (antes/después + videos del proceso) ───────── */
 const CH_HOOKS = ['¿Quieres saber cómo pasé de esto a esto?', 'Mis piernas eran delgadas. Mira cómo están hoy', '¿Quieres mi cambio físico? No es genética', 'No te creas a quien dice que es genética'];
-const CH_PER = 3;   /* videos por lámina de proceso */
+const CH_PER = 1;   /* videos por lámina de proceso: uno solo, para que se vea grande y sin achatar */
 const CH_MAXP = 3;  /* máximo de láminas de proceso */
 const C = {live:false, hook:CH_HOOKS[0], hookIdx:0, wt:'¿Genética? No.', weeks:'', gain:'', capDirty:false,
   pts:['Mis piernas eran delgadas. Hoy tienen masa muscular.', 'No fue genética: fue un método y constancia.', 'Te muestro los ejercicios exactos de mi proceso.'],
@@ -1571,7 +1571,7 @@ function chS2(ctx){
   });
   footer(ctx);
 }
-/* Láminas de proceso: 3 videos por lámina, en 3 columnas altas para que cada video se vea grande. */
+/* Láminas de proceso: 1 video por lámina, en un cuadro vertical centrado. */
 function chNP(){ return Math.min(CH_MAXP, Math.max(1, Math.ceil(C.clips.length / CH_PER))); }
 function chPlan(){
   const P = chNP(), pl = [{fn:chS1, nm:'Portada'}, {fn:chS2, nm:'Mensaje'}];
@@ -1584,9 +1584,9 @@ function chSP(ctx, k){
   const f = fit(ctx, 'LOS EJERCICIOS QUE ME LLEVARON AHÍ', {maxW:R - M, maxLines:2, start:84, min:46, wt:900, lsEm:-.045});
   const y = drawLines(ctx, f.lines, M, 190, f.px, f.ls, .94), cl = C.clips.slice(k * CH_PER, k * CH_PER + CH_PER), top = y + 48, bot = 1190;
   if (!cl.length){ txt(ctx, 'SUBE LOS VIDEOS DEL PROCESO', W/2, (top + bot)/2, {px:26, ls:6, color:GRAY, align:'center'}); footer(ctx); return; }
-  const gap = 20, cw = (R - M - gap * (CH_PER - 1)) / CH_PER, ch = bot - top;
+  const ch = bot - top, cw = Math.min(R - M, Math.round(ch * 0.8)), gap = 0;
   cl.forEach((c, i) => {
-    const x = M + i * (cw + gap), yy = top;
+    const x = M + (R - M - cw) / 2, yy = top;
     const lv = C.live && c.ok && c.el.videoWidth && c.el.readyState >= 2;
     drawCover(ctx, x, yy, cw, ch, 22, false, {img:lv ? c.el : c.th, strong:true, placeholder:'VIDEO'});
     const nm = fit(ctx, c.name.trim().toUpperCase(), {maxW:cw - 36, maxLines:2, start:30, min:20, wt:800, lsEm:0});
@@ -1681,7 +1681,7 @@ async function chAttach(c){
 let chQ = Promise.resolve();
 function chAddClips(files){
   for (const f of files){
-    if (C.clips.length >= 9){ toast('Máximo 9 videos (3 láminas de 3)'); break; }
+    if (C.clips.length >= 3){ toast('Máximo 3 videos (una lámina por video)'); break; }
     if (!(f.type.startsWith('video/') || /\.(mp4|mov|m4v|webm)$/i.test(f.name || ''))) continue;
     const c = {name:(f.name || 'Ejercicio').replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '), url:URL.createObjectURL(f), el:mkVideo('metadata'), ok:false, th:null, bad:false, removed:false, started:false};
     C.clips.push(c);
